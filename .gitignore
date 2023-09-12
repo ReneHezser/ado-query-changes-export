@@ -1,0 +1,7 @@
+.env
+*.html
+*.csv
+
+.vscode/
+bin/
+obj/

@@ -1,0 +1,38 @@
+using System;
+using System.Collections.Generic;
+using HandlebarsDotNet;
+
+
+class Export
+{
+   private static string _filename = $"{Environment.GetEnvironmentVariable("ORGANIZATION")}-{Environment.GetEnvironmentVariable("PROJECT")}-{DateTime.Now.ToShortDateString().Replace("/", "-")}-Export";
+
+   internal static void CreateCsv(List<ReportItem> workItems)
+   {
+      using (var writer = new StreamWriter(_filename + ".csv"))
+      {
+         writer.WriteLine("ID,VersionID,Title,Field,OldValue,NewValue");
+         foreach (var workItem in workItems)
+         {
+            foreach (var changedField in workItem.ChangedFields)
+            {
+               writer.WriteLine($"{workItem.ID},{workItem.VersionID},{workItem.Title},{changedField.Key},\"{changedField.previousValue}\",\"{changedField.currentValue}\"");
+            }
+         }
+      }
+   }
+
+   internal static void CreateHtml(List<ReportItem> workItems)
+   {
+      string source = File.ReadAllText("handlebars-template.js");
+
+      var template = Handlebars.Compile(source);
+      var data = new
+      {
+         title = $"{Environment.GetEnvironmentVariable("ORGANIZATION")}-{Environment.GetEnvironmentVariable("PROJECT")}-{DateTime.Now.ToShortDateString()}-Export",
+         ReportItems = workItems.ToArray()
+      };
+      var result = template(data);
+      File.WriteAllText(_filename + ".html", result);
+   }
+}
