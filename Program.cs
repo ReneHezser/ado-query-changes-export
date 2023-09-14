@@ -1,15 +1,16 @@
-﻿using System.Drawing;
-
-namespace AdoQueries;
+﻿namespace AdoQueries;
 
 class Program
 {
+    private static string version = "1.0.0.0";
+
     static void Main(string[] args)
     {
-        Console.WriteLine("Exports changes from an Azure DevOps query to an HTML file");
-        DotEnv.Load(".env");
+        Console.WriteLine("Exports changes from an Azure DevOps query to an HTML file.");
+        Console.WriteLine("Version: " + version);
         try
         {
+            DotEnv.Load(".env");
             int queryLastDays = 7;
             if (args.Length > 0)
             {

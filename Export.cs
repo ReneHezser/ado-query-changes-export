@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using HandlebarsDotNet;
 
 
@@ -25,6 +23,19 @@ class Export
    internal static void CreateHtml(List<ReportItem> workItems)
    {
       string source = File.ReadAllText("handlebars-template.js");
+
+      Handlebars.RegisterHelper("StringEqualityBlockHelper", (output, options, context, arguments) =>
+      {
+         if (arguments.Length != 2)
+         {
+            throw new HandlebarsException("{{#StringEqualityBlockHelper}} helper must have exactly two arguments");
+         }
+
+         var left = arguments.At<string>(0);
+         var right = arguments[1] as string;
+         if (left == right) options.Template(output, context);
+         else options.Inverse(output, context);
+      });
 
       var template = Handlebars.Compile(source);
       var data = new

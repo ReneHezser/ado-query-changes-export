@@ -6,16 +6,13 @@ SELECT
     [Custom.OfferingName],
     [Custom.AZServiceName],
     [Custom.Account],
-    [Custom.RelatedReferenceData],
-    [Custom.VanguardID]
+    [Custom.RelatedReferenceData]
 FROM workitemLinks
 WHERE
     (
         [Source].[System.TeamProject] = '{0}'
         AND [Source].[System.WorkItemType] = 'Feedback'
         AND [Source].[System.State] <> ''
-        AND [Source].[System.Tags] CONTAINS 'Vanguard-Import'
-        AND [Source].[Custom.TPID] = '998736'
     )
     AND (
         [System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Reverse'

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Diagnostics;
 using System.Text;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.WebApi;
@@ -10,6 +9,8 @@ public class ReportItem
    public int VersionID { get; set; }
    public string Title { get; set; }
    public List<dynamic> ChangedFields { get; set; } = new List<dynamic>();
+   public string LinkToItem { get; set; }
+   public string LinkToParent { get; set; }
 
    public static string[] IgnoreFields { get; set; } = new[] {
       "System.CommentCount",
@@ -113,17 +114,6 @@ public class ReportItem
                currentValue = GetFieldValue(field.Value)
             });
          }
-      }
-
-      // add user who modified the work item
-      if (!changedFields.Contains("System.ChangedBy"))
-      {
-         changedFields.Add(new
-         {
-            Key = "System.ChangedBy",
-            previousValue = GetFieldValue(previousItem.Fields["System.ChangedBy"]),
-            currentValue = GetFieldValue(currentItem.Fields["System.ChangedBy"])
-         });
       }
 
       if (GetFieldValue(currentItem.Fields["System.ChangedBy"]).ToString() == "scrpts")

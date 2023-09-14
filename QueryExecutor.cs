@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Diagnostics;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
@@ -32,6 +31,19 @@ namespace AdoQueries
             this.lastChangedWithinDays = lastChangedWithinDays;
         }
 
+        private static string ReadAdoQuery(string fileName)
+        {
+            if (fileName is null)
+                throw new ArgumentNullException(nameof(fileName));
+
+            if (!File.Exists(fileName))
+            {
+                throw new FileNotFoundException($"File not found: {fileName}");
+            }
+
+            return File.ReadAllText(fileName);
+        }
+
         public async Task<List<ReportItem>> QueryWorkitems()
         {
             var reportItems = new List<ReportItem>();
@@ -40,7 +52,7 @@ namespace AdoQueries
             // create a wiql object and build our query
             var wiql = new Wiql()
             {
-                Query = CleanQuery(string.Format(File.ReadAllText("ado-query.wiql"), project))
+                Query = CleanQuery(string.Format(ReadAdoQuery("ado-query.wiql"), project))
             };
 
             // create instance of work item tracking http client
@@ -99,11 +111,14 @@ namespace AdoQueries
                             }
                             else
                             {
+                                var linkToItem = workItem.Url.Substring(0, workItem.Url.IndexOf("/revisions/"));
                                 reportItems.Add(new ReportItem
                                 {
                                     ID = workItem.Id.Value,
                                     VersionID = workItem.Rev.Value,
                                     Title = (string)ReportItem.GetFieldValue(workItem.Fields["System.Title"]),
+                                    LinkToItem = linkToItem,
+                                    LinkToParent = relation.Source.Url,
                                     ChangedFields = changes
                                 });
                             }
@@ -111,7 +126,7 @@ namespace AdoQueries
 
                         // prepare the next versions
                         versionIndex++;
-                        if (versionIndex >= versionCount) break;
+                        if (versionIndex >= versionCount - 1) break;
                         currentItem = revisions[versionIndex];
                         previousItem = revisions[versionIndex + 1];
                     }

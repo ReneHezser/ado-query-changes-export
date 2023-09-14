@@ -1,12 +1,14 @@
-using System;
-using System.IO;
-
 public static class DotEnv
 {
    public static void Load(string filePath)
    {
-      if (!File.Exists(filePath))
+      if (string.IsNullOrEmpty(filePath))
          return;
+
+      if (!File.Exists(filePath))
+      {
+         throw new FileNotFoundException($"File not found: {filePath}");
+      }
 
       foreach (var line in File.ReadAllLines(filePath))
       {
