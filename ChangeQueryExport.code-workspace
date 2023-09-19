@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "ChangeQueryExport"
+		},
+		{
+			"path": "SamplePlugin"
+		},
+		{
+			"path": "PluginBase"
+		},
+		{
+			"path": "HtmlExportPlugin"
+		}
+	],
+	"settings": {}
+}

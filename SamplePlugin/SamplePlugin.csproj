@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PluginBase\PluginBase.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- copy sample Plugin to Plugin directory of the main program -->
+  <ItemGroup>
+    <SamplePluginFiles Include="$(TargetDir)$(ProjectName).dll;$(TargetDir)$(ProjectName).pdb"/>
+  </ItemGroup>
+  <Target Name="CopySamplePluginFiles" AfterTargets="AfterBuild">
+    <Copy SourceFiles="@(SamplePluginFiles)" 
+      DestinationFolder="$(BaseOutputPath)\..\..\ChangeQueryExport\Plugins" />
+  </Target>
+
+</Project>

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.Common;
+using PluginBase;
 
 namespace AdoQueries
 {
@@ -44,9 +45,9 @@ namespace AdoQueries
             return File.ReadAllText(fileName);
         }
 
-        public async Task<List<ReportItem>> QueryWorkitems()
+        public async Task<List<IReportItem>> QueryWorkitems()
         {
-            var reportItems = new List<ReportItem>();
+            List<IReportItem> reportItems = new List<IReportItem>();
             var credentials = new VssBasicCredential(string.Empty, personalAccessToken);
 
             // create a wiql object and build our query

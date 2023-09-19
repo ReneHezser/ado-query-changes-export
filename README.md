@@ -14,6 +14,10 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Changelog
 
+### 1.0.1
+
+- implemented plugin functionality
+
 ### 1.0.0
 
 - initial version
@@ -93,3 +97,11 @@ dotnet build
 dotnet publish -r win-x64
 dotnet publish -r linux-x64 --self-contained false
 ```
+
+## Plugins
+
+Each plugin needs to be ```dotnet publish```ed and the output copied to the Plugins folder.
+
+# Links
+
+- [AppWithPlugin Sample Code](https://github.com/dotnet/samples/tree/main/core/extensions/AppWithPlugin)

@@ -9,8 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Handlebars.Net" Version="2.1.4" />
+    <!-- <PackageReference Include="Handlebars.Net" Version="2.1.4" /> -->
     <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="19.225.0-preview" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PluginBase\PluginBase.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,6 +23,9 @@
     </None>
     <None Update="handlebars-template.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Plugins/copy plugins here.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>      
     </None>
   </ItemGroup>
 
