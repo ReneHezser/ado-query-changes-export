@@ -86,7 +86,7 @@ namespace AdoQueries
                     // if (relation.Target.Id != 112819) continue;
                     // // END DEBUG
                     WorkItem workItem = workItemManager.GetWorkItemAsync(relation.Target.Id, result.AsOf, WorkItemExpand.Fields).Result;
-                    var changedDate = (DateTime)ReportItem.GetFieldValue(workItem.Fields["System.ChangedDate"], typeof(DateTime));
+                    var changedDate = (DateTime)Extensions.GetFieldValue(workItem.Fields["System.ChangedDate"], typeof(DateTime));
                     if (changedDate <= DateTime.Now.AddDays(-lastChangedWithinDays)) continue;
 
                     // Feature has been changed in the last x days
@@ -98,7 +98,7 @@ namespace AdoQueries
                     var previousItem = revisions[1];
 
                     // check all revisions that fall into the desired timeframe
-                    while ((DateTime)ReportItem.GetFieldValue(currentItem.Fields["System.ChangedDate"], typeof(DateTime)) >= DateTime.Now.AddDays(-lastChangedWithinDays))
+                    while ((DateTime)Extensions.GetFieldValue(currentItem.Fields["System.ChangedDate"], typeof(DateTime)) >= DateTime.Now.AddDays(-lastChangedWithinDays))
                     {
                         List<dynamic> changes = ReportItem.GetChangedFields(previousItem, currentItem, revisions);
                         if (changes.Any())
@@ -117,7 +117,7 @@ namespace AdoQueries
                                 {
                                     ID = workItem.Id.Value,
                                     VersionID = workItem.Rev.Value,
-                                    Title = (string)ReportItem.GetFieldValue(workItem.Fields["System.Title"]),
+                                    Title = (string)Extensions.GetFieldValue(workItem.Fields["System.Title"]),
                                     LinkToItem = linkToItem,
                                     LinkToParent = relation.Source.Url,
                                     ChangedFields = changes

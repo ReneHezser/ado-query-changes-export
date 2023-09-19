@@ -14,6 +14,10 @@ namespace AdoQueries
             try
             {
                 var commands = LoadAndExecutePlugins(args ?? new string[0]);
+                foreach (ICommand command in commands)
+                {
+                    Console.WriteLine($"Found plugin {command.Name} - {command.Description}");
+                }
 
                 DotEnv.Load(".env");
                 int queryLastDays = 7;
@@ -34,16 +38,9 @@ namespace AdoQueries
 
                 foreach (ICommand command in commands)
                 {
-                    Console.WriteLine($"Executing {command.Name}\t - {command.Description}");
+                    Console.WriteLine($"Executing {command.Name} - {command.Description}");
                     command.Execute(workItems);
                 }
-
-                // foreach (var workItem in workItems)
-                // {
-                //     Console.WriteLine(workItem);
-                // }
-
-                // // Export.CreateCsv(workItems);
             }
             catch (Exception ex)
             {

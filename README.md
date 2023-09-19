@@ -17,6 +17,7 @@ I wanted to see changes on the associated items (in this case the Features) with
 ### 1.0.1
 
 - implemented plugin functionality
+- extensions for PluginBase to be used in custom Plugins
 
 ### 1.0.0
 

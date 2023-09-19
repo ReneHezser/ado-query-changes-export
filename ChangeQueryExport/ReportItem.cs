@@ -31,49 +31,6 @@ namespace AdoQueries
       }
 
       /// <summary>
-      /// Get the field value as a string, or other type if specified.
-      /// </summary>
-      /// <param name="field"></param>
-      /// <param name="type"></param>
-      /// <returns></returns>
-      internal static object GetFieldValue(dynamic field, Type? type = null)
-      {
-         if (type == null) type = field.GetType();
-
-         if (field == null)
-         {
-            return string.Empty;
-         }
-
-         if (type == typeof(string))
-         {
-            return field;
-         }
-
-         if (type == typeof(DateTime))
-         {
-            return (DateTime)field;
-         }
-
-         if (type == typeof(IEnumerable))
-         {
-            var values = new List<string>();
-            foreach (var value in field)
-            {
-               values.Add(value.ToString());
-            }
-            return string.Join(", ", values);
-         }
-
-         if (type == typeof(IdentityRef))
-         {
-            return ((IdentityRef)field).DisplayName;
-         }
-
-         return field.ToString();
-      }
-
-      /// <summary>
       /// 
       /// </summary>
       /// <param name="previousItem"></param>
@@ -107,19 +64,19 @@ namespace AdoQueries
             }
 
             // check for a changed field value. Need to compare the string values, because the field value types are different depending the type of the field
-            if (previousItem.Fields.ContainsKey(field.Key) && GetFieldValue(previousItem.Fields[field.Key]).ToString() != GetFieldValue(field.Value).ToString())
+            if (previousItem.Fields.ContainsKey(field.Key) && Extensions.GetFieldValue(previousItem.Fields[field.Key]).ToString() != Extensions.GetFieldValue(field.Value).ToString())
             {
                //Trace.WriteLine($"Field {field.Key} has changed from {field.Value} to {currentItem.Fields[field.Key]}");
                changedFields.Add(new
                {
                   Key = field.Key,
-                  previousValue = GetFieldValue(previousItem.Fields[field.Key]),
-                  currentValue = GetFieldValue(field.Value)
+                  previousValue = Extensions.GetFieldValue(previousItem.Fields[field.Key]),
+                  currentValue = Extensions.GetFieldValue(field.Value)
                });
             }
          }
 
-         if (GetFieldValue(currentItem.Fields["System.ChangedBy"]).ToString() == "scrpts")
+         if (Extensions.GetFieldValue(currentItem.Fields["System.ChangedBy"]).ToString() == "scrpts")
          {
             // don't add changes by scrpts
             // Trace.WriteLine("Skipping changes by scrpts");
