@@ -41,6 +41,7 @@ namespace AdoQueries
                     Console.WriteLine($"Executing {command.Name} - {command.Description}");
                     command.Execute(workItems);
                 }
+                Console.WriteLine("Done.");
             }
             catch (Exception ex)
             {

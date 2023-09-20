@@ -91,7 +91,7 @@ namespace AdoQueries
 
                     // Feature has been changed in the last x days
                     // start with the latest version
-                    List<WorkItem> revisions = workItemManager.GetRevisionsAsync(workItem.Id.Value, WorkItemExpand.Fields, null, null).Result.OrderByDescending(wi => wi.Rev).ToList();
+                    List<WorkItem> revisions = workItemManager.GetRevisionsAsync(workItem.Id.Value, WorkItemExpand.Fields).Result.OrderByDescending(wi => wi.Rev).ToList();
                     int versionCount = revisions.Count();
                     int versionIndex = 0;
                     var currentItem = revisions[0];

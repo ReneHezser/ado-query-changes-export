@@ -63,8 +63,17 @@ class WorkItemManager
    {
       if (!workItemRevisions.ContainsKey(id))
       {
-         List<WorkItem> revisions = await httpClient.GetRevisionsAsync(id, top, skip, expand).ConfigureAwait(false);
-         workItemRevisions.Add(id, revisions);
+         List<WorkItem> revisions;
+         var allRevisions = new List<WorkItem>();
+         do
+         {
+            revisions = await httpClient.GetRevisionsAsync(id, top, skip, expand).ConfigureAwait(false);
+            allRevisions.AddRange(revisions);
+            // try to get the next page
+            skip += top;
+         } while (revisions.Count > 0);
+
+         workItemRevisions.Add(id, allRevisions);
       }
       return workItemRevisions[id];
    }
