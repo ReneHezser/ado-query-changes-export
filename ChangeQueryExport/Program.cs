@@ -5,7 +5,7 @@ namespace AdoQueries
 {
     class Program
     {
-        private static string version = "1.0.0.1";
+        private static string version = "1.0.1";
 
         static void Main(string[] args)
         {
@@ -52,10 +52,9 @@ namespace AdoQueries
 
         private static IEnumerable<ICommand> LoadAndExecutePlugins(string[] args)
         {
-            // Paths to plugins to load.
+            // Paths from where plugins are loaded
             string[] pluginPaths = new string[]
             {
-                // Directory.GetCurrentDirectory(),
                 Directory.GetCurrentDirectory() + "\\Plugins"
             };
 
@@ -73,11 +72,12 @@ namespace AdoQueries
             Console.WriteLine($"Loading commands from: {pluginLocation}");
             var loadContext = new PluginLoadContext(pluginLocation);
 
+            // Plugins are dll files. Dependencies for plugins are placed in the same folder and are dlls as well
             FileInfo[] pluginFiles = new DirectoryInfo(pluginLocation).GetFiles("*.dll");
 
             foreach (var pluginFile in pluginFiles)
             {
-                yield return loadContext.LoadFromAssemblyPath(pluginFile.FullName);// LoadFromAssemblyName(new AssemblyName(pluginFilename.Name));
+                yield return loadContext.LoadFromAssemblyPath(pluginFile.FullName);
             }
         }
 

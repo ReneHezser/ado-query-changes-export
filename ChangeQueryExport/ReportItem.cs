@@ -1,17 +1,15 @@
 using PluginBase;
-using System.Collections;
 using System.Text;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
-using Microsoft.VisualStudio.Services.WebApi;
 
 namespace AdoQueries
 {
-   public class ReportItem : IReportItem
+    public class ReportItem : IReportItem
    {
       public int ID { get; set; }
       public int VersionID { get; set; }
       public string Title { get; set; }
-      public List<dynamic> ChangedFields { get; set; } = new List<dynamic>();
+      public List<IChangedField> ChangedFields { get; set; } = new List<IChangedField>();
       public string LinkToItem { get; set; }
       public string LinkToParent { get; set; }
 
@@ -26,7 +24,7 @@ namespace AdoQueries
       {
          var sb = new StringBuilder();
          sb.AppendLine($"ID: {ID}, Title: {Title}, ChangedFields:");
-         ChangedFields.ForEach(cf => sb.AppendLine($"\t{cf.Key}: {cf.previousValue} -> {cf.currentValue}"));
+         ChangedFields.ForEach(cf => sb.AppendLine($"\t{cf.Key}: {cf.PreviousValue} -> {cf.CurrentValue}"));
          return sb.ToString();
       }
 
@@ -37,12 +35,12 @@ namespace AdoQueries
       /// <param name="currentItem"></param>
       /// <param name="allRevisionItems">ordered with the newest being the first</param>
       /// <returns></returns>
-      internal static List<dynamic> GetChangedFields(WorkItem previousItem, WorkItem currentItem, List<WorkItem> allRevisionItems)
+      internal static List<IChangedField> GetChangedFields(WorkItem previousItem, WorkItem currentItem, List<WorkItem> allRevisionItems)
       {
          if (previousItem is null) throw new ArgumentNullException(nameof(previousItem));
          if (currentItem is null) throw new ArgumentNullException(nameof(currentItem));
 
-         var changedFields = new List<dynamic>();
+         var changedFields = new List<IChangedField>();
          foreach (var field in currentItem.Fields)
          {
             if (IgnoreFields.Contains(field.Key)) continue;
@@ -64,22 +62,26 @@ namespace AdoQueries
             }
 
             // check for a changed field value. Need to compare the string values, because the field value types are different depending the type of the field
-            if (previousItem.Fields.ContainsKey(field.Key) && Extensions.GetFieldValue(previousItem.Fields[field.Key]).ToString() != Extensions.GetFieldValue(field.Value).ToString())
+            if (previousItem.Fields.ContainsKey(field.Key) && Extensions.GetFieldValue<string>(previousItem.Fields[field.Key]) != Extensions.GetFieldValue<string>(field.Value))
             {
                //Trace.WriteLine($"Field {field.Key} has changed from {field.Value} to {currentItem.Fields[field.Key]}");
-               changedFields.Add(new
+               changedFields.Add(new ChangedField
                {
                   Key = field.Key,
-                  previousValue = Extensions.GetFieldValue(previousItem.Fields[field.Key]),
-                  currentValue = Extensions.GetFieldValue(field.Value)
+                  PreviousValue = Extensions.GetFieldValue<object>(previousItem.Fields[field.Key]),
+                  CurrentValue = Extensions.GetFieldValue<object>(field.Value)
                });
             }
          }
 
-         if (Extensions.GetFieldValue(currentItem.Fields["System.ChangedBy"]).ToString() == "scrpts")
+         if (Extensions.GetFieldValue<string>(currentItem.Fields["System.ChangedBy"]) == "scrpts")
          {
             // don't add changes by scrpts
-            // Trace.WriteLine("Skipping changes by scrpts");
+            changedFields.Clear();
+         }
+         // ignore changes in only the Rev field
+         if (changedFields.Count == 3 && changedFields.Any(cf => cf.Key == "System.Rev") && changedFields.Any(cf => cf.Key == "System.ChangedDate") && changedFields.Any(cf => cf.Key == "System.ChangedBy"))
+         {
             changedFields.Clear();
          }
 

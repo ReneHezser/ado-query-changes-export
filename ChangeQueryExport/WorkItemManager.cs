@@ -59,17 +59,25 @@ class WorkItemManager
       return workItems.First(wi => wi.Id == id);
    }
 
+   /// <summary>
+   /// get all revisions of a workitem. Does internal paging to get all revisions
+   /// </summary>
+   /// <param name="id"></param>
+   /// <param name="expand"></param>
+   /// <param name="top"></param>
+   /// <param name="skip"></param>
+   /// <returns></returns>
    internal async Task<List<WorkItem>> GetRevisionsAsync(int id, WorkItemExpand expand, int? top = 200, int? skip = 0)
    {
       if (!workItemRevisions.ContainsKey(id))
       {
+         // might need to query multiple times to get all revisions. Otherwise the page size is limited to 200
          List<WorkItem> revisions;
          var allRevisions = new List<WorkItem>();
          do
          {
             revisions = await httpClient.GetRevisionsAsync(id, top, skip, expand).ConfigureAwait(false);
             allRevisions.AddRange(revisions);
-            // try to get the next page
             skip += top;
          } while (revisions.Count > 0);
 
@@ -81,7 +89,6 @@ class WorkItemManager
    internal async Task<WorkItemQueryResult> QueryByWiqlAsync(Wiql wiql)
    {
       WorkItemQueryResult result = await httpClient.QueryByWiqlAsync(wiql).ConfigureAwait(false);
-      // AddRange(result.WorkItems);
       AddRange(result.WorkItemRelations);
       return result;
    }

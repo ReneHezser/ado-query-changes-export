@@ -13,38 +13,45 @@ namespace PluginBase
       /// <param name="field"></param>
       /// <param name="type"></param>
       /// <returns></returns>
-      public static object GetFieldValue(dynamic field, Type? type = null)
+      public static T GetFieldValue<T>(dynamic field)
       {
-         if (type == null) type = field.GetType();
+         var fieldType = field.GetType();
 
-         if (field == null)
+         if (fieldType == null)
          {
-            return string.Empty;
+            return (T)(object)string.Empty;
          }
 
-         if (type == typeof(string))
+         if (fieldType == typeof(string))
          {
-            return field;
+            return (T)field;
          }
 
-         if (type == typeof(DateTime))
+         if (fieldType == typeof(DateTime))
          {
-            return (DateTime)field;
+            if (typeof(T) == typeof(DateTime))
+            {
+               return (T)field;
+            }
+            if (typeof(T) == typeof(string))
+            {
+               return (T)(object)((DateTime)field).ToString();
+            }
          }
 
-         if (type == typeof(IEnumerable))
+         if (fieldType == typeof(IEnumerable))
          {
             var values = new List<string>();
             foreach (var value in field)
             {
                values.Add(value.ToString());
             }
-            return string.Join(", ", values);
+            return (T)(object)string.Join(", ", values);
          }
 
-         if (type == typeof(IdentityRef))
+         if (fieldType == typeof(IdentityRef))
          {
-            return ((IdentityRef)field).DisplayName;
+            return (T)(object)((IdentityRef)field).DisplayName;
          }
 
          return field.ToString();

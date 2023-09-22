@@ -18,6 +18,7 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 - implemented plugin functionality
 - extensions for PluginBase to be used in custom Plugins
+- Interfaces for objects
 
 ### 1.0.0
 

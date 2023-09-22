@@ -5,6 +5,11 @@ namespace PluginBase
 {
    public static class DotEnv
    {
+      /// <summary>
+      /// read from a file and add the values to the environment
+      /// </summary>
+      /// <param name="filePath"></param>
+      /// <exception cref="FileNotFoundException"></exception>
       public static void Load(string filePath)
       {
          if (string.IsNullOrEmpty(filePath))
