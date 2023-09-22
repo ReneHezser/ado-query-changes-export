@@ -1,6 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Reflection;
+using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.WebApi;
 
 namespace PluginBase
@@ -55,6 +58,58 @@ namespace PluginBase
          }
 
          return field.ToString();
+      }
+
+      /// <summary>
+      /// get the description attribute of a property
+      /// </summary>
+      /// <typeparam name="T"></typeparam>
+      /// <param name="fieldName"></param>
+      /// <returns></returns>
+      public static string GetDescription<T>(string fieldName)
+      {
+         string result = null;
+         PropertyInfo pi = typeof(T).GetProperty(fieldName.ToString());
+         if (pi != null)
+         {
+            try
+            {
+               object[] descriptionAttrs = pi.GetCustomAttributes(typeof(DescriptionAttribute), false);
+               if (descriptionAttrs.Length != 0)
+               {
+                  DescriptionAttribute description = (DescriptionAttribute)descriptionAttrs[0];
+                  result = (description.Description);
+               }
+            }
+            catch
+            {
+               result = null;
+            }
+         }
+
+         return result;
+      }
+
+      /// <summary>
+      /// Update the ADO item with the changes from a class. Decorate the properties of the class with a DescriptionAttribute that matches the ADO field name.
+      /// </summary>
+      /// <param name="workItem"></param>
+      public static void UpdateAdoItem<T>(this T pluginClass, WorkItem workItem)
+      {
+         var properties = typeof(T).GetProperties(BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Instance);
+         foreach (var property in properties)
+         {
+            var propertyValue = property.GetValue(pluginClass);
+            if (propertyValue != null)
+            {
+               var adoFieldName = GetDescription<T>(property.Name);
+               // properties that do not have a description are ignored
+               if (adoFieldName == null) continue;
+
+               Console.WriteLine($"\tUpdating {adoFieldName} to {propertyValue}");
+               workItem.Fields[adoFieldName] = propertyValue;
+            }
+         }
       }
    }
 }
