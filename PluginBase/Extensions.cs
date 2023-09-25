@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.WebApi;
 
@@ -94,7 +95,7 @@ namespace PluginBase
       /// Update the ADO item with the changes from a class. Decorate the properties of the class with a DescriptionAttribute that matches the ADO field name.
       /// </summary>
       /// <param name="workItem"></param>
-      public static void UpdateAdoItem<T>(this T pluginClass, WorkItem workItem)
+      public static void UpdateAdoItem<T>(this T pluginClass, WorkItem workItem, ILogger logger = null)
       {
          var properties = typeof(T).GetProperties(BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Instance);
          foreach (var property in properties)
@@ -106,7 +107,7 @@ namespace PluginBase
                // properties that do not have a description are ignored
                if (adoFieldName == null) continue;
 
-               Console.WriteLine($"\tUpdating {adoFieldName} to {propertyValue}");
+               logger?.LogDebug($"\tUpdating {adoFieldName} to {propertyValue}");
                workItem.Fields[adoFieldName] = propertyValue;
             }
          }

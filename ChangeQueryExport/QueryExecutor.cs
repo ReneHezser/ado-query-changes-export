@@ -24,7 +24,7 @@ namespace AdoQueries
         ///     A Personal Access Token, find out how to create one:
         ///     <see href="/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops" />.
         /// </param>
-        public QueryExecutor(string orgName, string project, string personalAccessToken, int lastChangedWithinDays = 7)
+        public QueryExecutor(string orgName, string project, string personalAccessToken, int lastChangedWithinDays)
         {
             uri = new Uri("https://dev.azure.com/" + orgName);
             this.project = project;

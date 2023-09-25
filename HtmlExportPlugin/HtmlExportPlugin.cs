@@ -3,21 +3,25 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using HandlebarsDotNet;
+using Microsoft.Extensions.Logging;
 
 namespace HtmlExportPlugin
 {
-   public class HtmlExportPlugin : ICommand
+   public class HtmlExportPlugin : IPlugin
    {
       public string Name { get => "HTML Export Plugin"; }
       public string Description { get => "Exports changes to an HTML file."; }
+      public ILogger Logger { get; set; }
 
       public int Execute(List<IReportItem> items)
       {
+         if (Logger is null) throw new ArgumentNullException(nameof(Logger));
+
          CreateHtml(items);
          return 0;
       }
 
-      internal static void CreateHtml(List<IReportItem> workItems)
+      internal void CreateHtml(List<IReportItem> workItems)
       {
          string source;
          try
@@ -26,7 +30,7 @@ namespace HtmlExportPlugin
          }
          catch (FileNotFoundException)
          {
-            Console.WriteLine("Cannot find the HTML template 'handlebars-template.js' in the Plugins folder. Please make sure it is there and try again.");
+            Logger.LogInformation("Cannot find the HTML template 'handlebars-template.js' in the Plugins folder. Please make sure it is there and try again.");
             return;
          }
 
@@ -53,7 +57,7 @@ namespace HtmlExportPlugin
          };
          var result = template(data);
          File.WriteAllText(filename + ".html", result);
-         Console.WriteLine($"HTML file written to {filename}.html");
+         Logger.LogInformation($"HTML file written to {filename}.html");
       }
    }
 }
