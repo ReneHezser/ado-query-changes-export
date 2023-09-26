@@ -35,6 +35,10 @@ I wanted to see changes on the associated items (in this case the Features) with
 - Query that returns linked items like in the screenshot above
 - ```.env``` file
 
+## TODO
+
+- implement batching for Wiql queries
+
 ## PAT
 
 A personal access token has to be generated for the organization that hosts the items to query.
@@ -106,12 +110,14 @@ Application-specific configuration is done in the appsettings file. Create it in
       }
    },
    "ApplicationInsights": {
-      "ConnectionString": "<yourconnectionstring>"
+      "ConnectionString" : "InstrumentationKey=00000000-0000-0000-0000-000000000000;"
    }
 }
 ```
 
-# Run the tool
+Fill in the connection string in the application.json.
+
+## Run the tool
 
 The [releases folder](/releases/) contains the application. In order to run it you need to
 

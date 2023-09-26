@@ -10,7 +10,7 @@ namespace AdoQueries
 {
    public class Worker : BackgroundService
    {
-      private static string version = "1.0.2";
+      private static string version = "1.0.3";
 
       private readonly ILogger<Worker> _logger;
       private TelemetryClient tc;
@@ -37,7 +37,7 @@ namespace AdoQueries
 
             List<IReportItem> workItems;
             // load Workitems
-            using (tc.StartOperation<RequestTelemetry>("Query Workitems"))
+            using (tc.StartOperation<RequestTelemetry>("Query Workitems in " + Environment.GetEnvironmentVariable("PROJECT")))
             {
                var queryExecutor = new QueryExecutor(
                                   Environment.GetEnvironmentVariable("ORGANIZATION"),
@@ -55,12 +55,23 @@ namespace AdoQueries
             {
                using (tc.StartOperation<RequestTelemetry>("Command: " + command.Name))
                {
-                  _logger.LogInformation($"Executing '{command.Name} - {command.Description}'");
-                  command.Execute(workItems);
+                  try
+                  {
+                     _logger.LogInformation($"Executing '{command.Name} - {command.Description}'");
+                     command.Execute(workItems);
+                  }
+                  catch (Exception ex)
+                  {
+                     _logger.LogError(ex, $"Error executing '{command.Name} - {command.Description}'");
+                  }
+                  finally
+                  {
+                     // ensure all telemetry is flushed before exiting
+                     tc.Flush();
+                  }
                }
             }
 
-            // System.Diagnostics.Process.GetCurrentProcess().Kill();
             _hostLifetime.StopApplication();
          }
       }

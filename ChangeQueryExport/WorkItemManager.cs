@@ -88,6 +88,7 @@ class WorkItemManager
 
    internal async Task<WorkItemQueryResult> QueryByWiqlAsync(Wiql wiql)
    {
+      // TODO implement batching
       WorkItemQueryResult result = await httpClient.QueryByWiqlAsync(wiql).ConfigureAwait(false);
       AddRange(result.WorkItemRelations);
       return result;

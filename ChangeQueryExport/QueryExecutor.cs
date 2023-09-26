@@ -108,7 +108,7 @@ namespace AdoQueries
                     else
                     {
                         int length = workItem.Url.IndexOf("/revisions/");
-                        if (length == -1) throw new Exception(@"WorkItem.Url '{workItem.Url}' does not contain '/revisions/'");
+                        if (length == -1) throw new ArgumentException(@"WorkItem.Url '{workItem.Url}' does not contain '/revisions/'");
                         var linkToItem = workItem.Url.Substring(0, length);
                         reportItems.Add(new ReportItem
                         {

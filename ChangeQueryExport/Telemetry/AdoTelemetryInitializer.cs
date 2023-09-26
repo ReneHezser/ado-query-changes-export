@@ -9,7 +9,7 @@ namespace AdoQueries.Telemetry
       public void Initialize(ITelemetry telemetry)
       {
          // Replace with actual properties.
-         (telemetry as ISupportProperties).Properties["Project"] = "Azure DevOps Query Executor with Plugins";
+         (telemetry as ISupportProperties).Properties["Project"] = "Azure-DevOps-Query-Executor-with-Plugins";
       }
    }
 }

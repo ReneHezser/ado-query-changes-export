@@ -18,11 +18,10 @@
 
   <!-- copy sample Plugin to Plugin directory of the main program -->
   <ItemGroup>
-    <SamplePluginFiles Include="$(TargetDir)$(ProjectName).dll;$(TargetDir)$(ProjectName).pdb"/>
+    <SamplePluginFiles Include="$(TargetDir)$(ProjectName).dll;$(TargetDir)$(ProjectName).pdb" />
   </ItemGroup>
   <Target Name="CopySamplePluginFiles" AfterTargets="AfterBuild">
-    <Copy SourceFiles="@(SamplePluginFiles)" 
-      DestinationFolder="$(BaseOutputPath)\..\..\ChangeQueryExport\Plugins" />
+    <Copy SourceFiles="@(SamplePluginFiles)" DestinationFolder="$(BaseOutputPath)\..\..\ChangeQueryExport\Plugins" />
   </Target>
 
 </Project>
