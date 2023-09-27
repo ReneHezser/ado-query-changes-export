@@ -45,6 +45,7 @@ namespace AdoQueries
          {
             if (IgnoreFields.Contains(field.Key)) continue;
 
+            var oldVersionFound = false;
             if (!previousItem.Fields.Any(f => f.Key == field.Key))
             {
                // need to get the field value from the item version that are older than the current item
@@ -55,19 +56,22 @@ namespace AdoQueries
                   if (olderRevision.Fields.Any(f => f.Key == field.Key))
                   {
                      previousItem = olderRevision;
+                     oldVersionFound = true;
                      break;
                   }
                }
             }
 
-            // check for a changed field value. Need to compare the string values, because the field value types are different depending the type of the field
-            if (previousItem.Fields.ContainsKey(field.Key) && Extensions.GetFieldValue<string>(previousItem.Fields[field.Key]) != Extensions.GetFieldValue<string>(field.Value))
+            // check for a changed field value. 
+            // if no old version was found to compare against, assume the field value has changed
+            // Need to compare the string values, because the field value types are different depending the type of the field
+            if (!oldVersionFound || previousItem.Fields.ContainsKey(field.Key) && Extensions.GetFieldValue<string>(previousItem.Fields[field.Key]) != Extensions.GetFieldValue<string>(field.Value))
             {
                //Trace.WriteLine($"Field {field.Key} has changed from {field.Value} to {currentItem.Fields[field.Key]}");
                changedFields.Add(new ChangedField
                {
                   Key = field.Key,
-                  PreviousValue = Extensions.GetFieldValue<object>(previousItem.Fields[field.Key]),
+                  PreviousValue = oldVersionFound ? Extensions.GetFieldValue<object>(previousItem.Fields[field.Key]) : null,
                   CurrentValue = Extensions.GetFieldValue<object>(field.Value)
                });
             }
