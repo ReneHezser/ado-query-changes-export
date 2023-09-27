@@ -10,7 +10,7 @@ namespace AdoQueries
 {
    public class Worker : BackgroundService
    {
-      private static string version = "1.0.3";
+      private static string version = "1.0.4";
 
       private readonly ILogger<Worker> _logger;
       private TelemetryClient tc;
@@ -39,7 +39,7 @@ namespace AdoQueries
             // load Workitems
             using (tc.StartOperation<RequestTelemetry>("Query Workitems in " + Environment.GetEnvironmentVariable("PROJECT")))
             {
-               var queryExecutor = new QueryExecutor(
+               var queryExecutor = new QueryExecutor(_logger,
                                   Environment.GetEnvironmentVariable("ORGANIZATION"),
                                   Environment.GetEnvironmentVariable("PROJECT"),
                                   Environment.GetEnvironmentVariable("PERSONAL_ACCESS_TOKEN"),
@@ -48,16 +48,18 @@ namespace AdoQueries
                var task = queryExecutor.QueryWorkitems();
                task.Wait();
                workItems = task.Result;
+               tc.Flush();
             }
 
             // do something with the workitems for each Plugin
             foreach (IPlugin command in commands)
             {
+               using (_logger.BeginScope("Worker.PluginExecution"))
                using (tc.StartOperation<RequestTelemetry>("Command: " + command.Name))
                {
                   try
                   {
-                     _logger.LogInformation($"Executing '{command.Name} - {command.Description}'");
+                     _logger.LogDebug($"Executing '{command.Name} - {command.Description}'");
                      command.Execute(workItems);
                   }
                   catch (Exception ex)
@@ -122,6 +124,7 @@ namespace AdoQueries
             catch (ReflectionTypeLoadException ex)
             {
                _logger.LogError(ex.Message);
+               continue;
             }
             foreach (Type type in assembly.GetTypes())
             {

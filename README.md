@@ -14,6 +14,15 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Changelog
 
+### 1.0.4
+
+- implemented batching to fix the 200 WorkItem limit
+
+### 1.0.3
+
+- improvements for logging
+- exception handling improved
+
 ### 1.0.2
 
 - added Application Insights

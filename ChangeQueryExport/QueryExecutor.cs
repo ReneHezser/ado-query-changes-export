@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.Common;
@@ -9,6 +10,7 @@ namespace AdoQueries
     public class QueryExecutor
     {
         private readonly Uri uri;
+        private readonly ILogger<Worker> logger;
         private readonly string project;
         private readonly string personalAccessToken;
         private readonly int lastChangedWithinDays;
@@ -24,9 +26,10 @@ namespace AdoQueries
         ///     A Personal Access Token, find out how to create one:
         ///     <see href="/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops" />.
         /// </param>
-        public QueryExecutor(string orgName, string project, string personalAccessToken, int lastChangedWithinDays)
+        public QueryExecutor(ILogger<Worker> logger, string orgName, string project, string personalAccessToken, int lastChangedWithinDays)
         {
             uri = new Uri("https://dev.azure.com/" + orgName);
+            this.logger = logger;
             this.project = project;
             this.personalAccessToken = personalAccessToken;
             this.lastChangedWithinDays = lastChangedWithinDays;
@@ -59,7 +62,7 @@ namespace AdoQueries
             // create instance of work item tracking http client
             using (var httpClient = new WorkItemTrackingHttpClient(uri, credentials))
             {
-                var workItemManager = new WorkItemManager(httpClient);
+                var workItemManager = new WorkItemManager(httpClient, logger);
                 WorkItemQueryResult result = await workItemManager.QueryByWiqlAsync(wiql).ConfigureAwait(false);
                 IList<WorkItemLink> workItemRelations = result.WorkItemRelations.ToList();
 
@@ -68,20 +71,39 @@ namespace AdoQueries
                 if (ids.Length == 0) return reportItems;
 
                 // ignore Feedback items and sort from newest to oldest
-                foreach (var relation in workItemRelations
+                var workItemRelationIds = workItemRelations
                     .Where(wir => !string.IsNullOrEmpty(wir.Rel))
-                    .OrderByDescending(wir => wir.Rel))
+                    .OrderByDescending(wir => wir.Rel)
+                    .Select(wir => wir.Target.Id).ToList();
+                // get all workitems
+
+
+                // Split into groups of 200 items
+                var QueryGroups = from i in Enumerable.Range(0, workItemRelationIds.Count())
+                                  group workItemRelationIds[i] by i / 200;
+                List<WorkItem> workItems = new List<WorkItem>();
+                foreach (var queryGroup in QueryGroups)
                 {
-                    GetWorkitemChanges(workItemManager, relation, result, reportItems);
+                    if (queryGroup.Count() != 0)
+                    {
+                        // query group and add to workitems
+                        var groupIds = queryGroup.Select(i => i).ToArray();
+                        workItems.AddRange(workItemManager.GetWorkItemsAsync(groupIds, result.AsOf, WorkItemExpand.Fields).Result);
+                    }
+                }
+
+                foreach (var workItem in workItems.OrderByDescending(wi => wi.Rev))
+                {
+                    var workItemRelation = workItemRelations.First(wir => wir.Target.Id == workItem.Id);
+                    GetWorkitemChanges(workItemManager, workItem, workItemRelation, reportItems);
                 }
 
                 return reportItems;
             }
         }
 
-        private void GetWorkitemChanges(WorkItemManager workItemManager, WorkItemLink relation, WorkItemQueryResult result, List<IReportItem> reportItems)
+        private void GetWorkitemChanges(WorkItemManager workItemManager, WorkItem workItem, WorkItemLink workItemLink, List<IReportItem> reportItems)
         {
-            WorkItem workItem = workItemManager.GetWorkItemAsync(relation.Target.Id, result.AsOf, WorkItemExpand.Fields).Result;
             var changedDate = Extensions.GetFieldValue<DateTime>(workItem.Fields["System.ChangedDate"]);
             if (changedDate <= DateTime.Now.AddDays(-lastChangedWithinDays)) return;
 
@@ -116,7 +138,7 @@ namespace AdoQueries
                             VersionID = workItem.Rev.Value,
                             Title = Extensions.GetFieldValue<string>(workItem.Fields["System.Title"]),
                             LinkToItem = linkToItem,
-                            LinkToParent = relation.Source.Url,
+                            LinkToParent = workItemLink.Source.Url,
                             ChangedFields = changes
                         });
                     }
@@ -125,7 +147,7 @@ namespace AdoQueries
                 // prepare the next versions
                 versionIndex++;
                 if (versionIndex >= versionCount - 1) break;
-                
+
                 currentItem = revisions[versionIndex];
                 previousItem = revisions[versionIndex + 1];
             }

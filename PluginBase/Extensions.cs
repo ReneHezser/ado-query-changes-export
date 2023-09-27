@@ -6,6 +6,8 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.WebApi;
+using Microsoft.VisualStudio.Services.WebApi.Patch;
+using Microsoft.VisualStudio.Services.WebApi.Patch.Json;
 
 namespace PluginBase
 {
@@ -95,8 +97,10 @@ namespace PluginBase
       /// Update the ADO item with the changes from a class. Decorate the properties of the class with a DescriptionAttribute that matches the ADO field name.
       /// </summary>
       /// <param name="workItem"></param>
-      public static void UpdateAdoItem<T>(this T pluginClass, WorkItem workItem, ILogger logger = null)
+      public static JsonPatchDocument UpdateAdoItem<T>(this T pluginClass, WorkItem workItem, ILogger logger = null)
       {
+         JsonPatchDocument patches = new JsonPatchDocument();
+
          var properties = typeof(T).GetProperties(BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Instance);
          foreach (var property in properties)
          {
@@ -108,9 +112,18 @@ namespace PluginBase
                if (adoFieldName == null) continue;
 
                logger?.LogDebug($"\tUpdating {adoFieldName} to {propertyValue}");
+               patches.Add(new JsonPatchOperation
+               {
+                  Operation = Operation.Add,
+                  Path = "/fields/" + adoFieldName,
+                  Value = propertyValue,
+                  From = "Feature-Sync"
+               });
                workItem.Fields[adoFieldName] = propertyValue;
             }
          }
+
+         return patches;
       }
    }
 }

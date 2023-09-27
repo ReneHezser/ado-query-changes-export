@@ -1,3 +1,5 @@
+using AdoQueries;
+using Microsoft.Extensions.Logging;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.Common;
@@ -5,10 +7,12 @@ using Microsoft.VisualStudio.Services.Common;
 class WorkItemManager
 {
    private WorkItemTrackingHttpClient httpClient;
+   private readonly ILogger<Worker> logger;
 
-   public WorkItemManager(WorkItemTrackingHttpClient httpClient)
+   public WorkItemManager(WorkItemTrackingHttpClient httpClient, ILogger<Worker> logger)
    {
-      this.httpClient = httpClient;
+      this.httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+      this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
    }
 
    // holds all fetched WorkItems to not query multiple times
@@ -36,27 +40,18 @@ class WorkItemManager
       workItemLinks.ForEach(Add);
    }
 
-   /// <summary>
-   /// only query for the workitem, if it has not been queried before
-   /// </summary>
-   /// <param name="id"></param>
-   /// <param name="asOf"></param>
-   /// <param name="fields"></param>
-   /// <returns></returns> <summary>
-   /// 
-   /// </summary>
-   /// <param name="id"></param>
-   /// <param name="asOf"></param>
-   /// <param name="fields"></param>
-   /// <returns></returns>
-   internal async Task<WorkItem> GetWorkItemAsync(int id, DateTime asOf, WorkItemExpand expand)
+   internal async Task<IEnumerable<WorkItem>> GetWorkItemsAsync(IList<int> ids, DateTime asOf, WorkItemExpand expand)
    {
-      if (!workItems.Any(wi => wi.Id == id))
+      using (logger.BeginScope("WorkItemManager.GetWorkItemsAsync ({ids.Length} items)"))
       {
-         Task<WorkItem> task = httpClient.GetWorkItemAsync(id, null, asOf, expand);
-         Add(task.Result);
+         // query only items that have not been queried before
+         var idsToQuery = ids.Where(id => !workItems.Any(wi => wi.Id == id));
+
+         List<WorkItem> newWorkItems = httpClient.GetWorkItemsAsync(idsToQuery, null, asOf, expand).Result;
+         newWorkItems.ForEach(Add);
+
+         return workItems.Where(wi => wi.Id != null && ids.Contains(wi.Id.Value));
       }
-      return workItems.First(wi => wi.Id == id);
    }
 
    /// <summary>
@@ -69,28 +64,34 @@ class WorkItemManager
    /// <returns></returns>
    internal async Task<List<WorkItem>> GetRevisionsAsync(int id, WorkItemExpand expand, int? top = 200, int? skip = 0)
    {
-      if (!workItemRevisions.ContainsKey(id))
+      using (logger.BeginScope("WorkItemManager.GetRevisionsAsync"))
       {
-         // might need to query multiple times to get all revisions. Otherwise the page size is limited to 200
-         List<WorkItem> revisions;
-         var allRevisions = new List<WorkItem>();
-         do
+         if (!workItemRevisions.ContainsKey(id))
          {
-            revisions = await httpClient.GetRevisionsAsync(id, top, skip, expand).ConfigureAwait(false);
-            allRevisions.AddRange(revisions);
-            skip += top;
-         } while (revisions.Count > 0);
+            // might need to query multiple times to get all revisions. Otherwise the page size is limited to 200
+            List<WorkItem> revisions;
+            var allRevisions = new List<WorkItem>();
+            do
+            {
+               revisions = await httpClient.GetRevisionsAsync(id, top, skip, expand).ConfigureAwait(false);
+               allRevisions.AddRange(revisions);
+               skip += top;
+            } while (revisions.Count > 0);
 
-         workItemRevisions.Add(id, allRevisions);
+            workItemRevisions.Add(id, allRevisions);
+         }
+         return workItemRevisions[id];
       }
-      return workItemRevisions[id];
    }
 
    internal async Task<WorkItemQueryResult> QueryByWiqlAsync(Wiql wiql)
    {
       // TODO implement batching
-      WorkItemQueryResult result = await httpClient.QueryByWiqlAsync(wiql).ConfigureAwait(false);
-      AddRange(result.WorkItemRelations);
-      return result;
+      using (logger.BeginScope("WorkItemManager.QueryByWiqlAsync"))
+      {
+         WorkItemQueryResult result = await httpClient.QueryByWiqlAsync(wiql).ConfigureAwait(false);
+         AddRange(result.WorkItemRelations);
+         return result;
+      }
    }
 }
