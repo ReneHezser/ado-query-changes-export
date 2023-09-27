@@ -111,8 +111,9 @@ namespace PluginBase
                // properties that do not have a description are ignored
                if (adoFieldName == null) continue;
 
+               // Empty fields will not be available in workItem.Fields and need to be updated
                // do not update fields that did not change (have already been changed)
-               if (string.Equals(GetFieldValue<string>(workItem.Fields[adoFieldName]), (propertyValue ?? string.Empty).ToString(), StringComparison.OrdinalIgnoreCase))
+               if (workItem.Fields.ContainsKey(adoFieldName) && string.Equals(GetFieldValue<string>(workItem.Fields[adoFieldName]), (propertyValue ?? string.Empty).ToString(), StringComparison.OrdinalIgnoreCase))
                   continue;
 
                logger?.LogDebug($"\tUpdating {adoFieldName} to {propertyValue}");

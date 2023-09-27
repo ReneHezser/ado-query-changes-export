@@ -4,7 +4,7 @@ using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 
 namespace AdoQueries
 {
-    public class ReportItem : IReportItem
+   public class ReportItem : IReportItem
    {
       public int ID { get; set; }
       public int VersionID { get; set; }
@@ -58,7 +58,6 @@ namespace AdoQueries
                      break;
                   }
                }
-               // Trace.WriteLine(string.Format("ItemID:{0},Field={1},currentRev={2},previousRev={3}", currentItem.Id, field.Key, currentItem.Rev.Value, previousItem.Rev.Value));
             }
 
             // check for a changed field value. Need to compare the string values, because the field value types are different depending the type of the field
