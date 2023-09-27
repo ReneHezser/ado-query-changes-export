@@ -75,8 +75,6 @@ namespace AdoQueries
                     .Where(wir => !string.IsNullOrEmpty(wir.Rel))
                     .OrderByDescending(wir => wir.Rel)
                     .Select(wir => wir.Target.Id).ToList();
-                // get all workitems
-
 
                 // Split into groups of 200 items
                 var QueryGroups = from i in Enumerable.Range(0, workItemRelationIds.Count())

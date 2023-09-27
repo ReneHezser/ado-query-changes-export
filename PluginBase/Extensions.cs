@@ -111,13 +111,16 @@ namespace PluginBase
                // properties that do not have a description are ignored
                if (adoFieldName == null) continue;
 
+               // do not update fields that did not change (have already been changed)
+               if (string.Equals(GetFieldValue<string>(workItem.Fields[adoFieldName]), (propertyValue ?? string.Empty).ToString(), StringComparison.OrdinalIgnoreCase))
+                  continue;
+
                logger?.LogDebug($"\tUpdating {adoFieldName} to {propertyValue}");
                patches.Add(new JsonPatchOperation
                {
                   Operation = Operation.Add,
                   Path = "/fields/" + adoFieldName,
-                  Value = propertyValue,
-                  From = "Feature-Sync"
+                  Value = propertyValue
                });
                workItem.Fields[adoFieldName] = propertyValue;
             }
