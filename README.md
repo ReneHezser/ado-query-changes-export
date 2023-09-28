@@ -14,6 +14,10 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Changelog
 
+### 1.0.5
+
+- fixed path for Linux to load Plugins
+
 ### 1.0.4
 
 - implemented batching to fix the 200 WorkItem limit

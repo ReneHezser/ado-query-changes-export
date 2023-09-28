@@ -15,7 +15,7 @@ namespace HtmlExportPlugin
       public ILogger Logger { get; set; }
 
       public static string[] IgnoreFieldsStartingWith { get; set; } = new[] {
-      "System.BoardColumn", "Microsoft.VSTS.", "WEF_"
+         "System.BoardColumn", "Microsoft.VSTS.", "WEF_"
       };
 
       public int Execute(List<IReportItem> items)
@@ -31,7 +31,8 @@ namespace HtmlExportPlugin
          string source;
          try
          {
-            source = File.ReadAllText("Plugins/handlebars-template.js");
+            var templatePath = Path.Combine(new[] { "Plugins", "handlebars-template.js" });
+            source = File.ReadAllText(templatePath);
          }
          catch (FileNotFoundException)
          {

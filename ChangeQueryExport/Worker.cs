@@ -10,7 +10,7 @@ namespace AdoQueries
 {
    public class Worker : BackgroundService
    {
-      private static string version = "1.0.4";
+      private static string version = "1.0.5";
 
       private readonly ILogger<Worker> _logger;
       private TelemetryClient tc;
@@ -87,7 +87,7 @@ namespace AdoQueries
          // Paths from where plugins are loaded
          string[] pluginPaths = new string[]
          {
-                Directory.GetCurrentDirectory() + "\\Plugins"
+            Path.Combine(new string[]{ Directory.GetCurrentDirectory() , "Plugins"})
          };
 
          IEnumerable<IPlugin> commands = pluginPaths.SelectMany(pluginPath =>
