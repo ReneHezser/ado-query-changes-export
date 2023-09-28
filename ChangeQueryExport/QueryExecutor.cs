@@ -28,10 +28,13 @@ namespace AdoQueries
         /// </param>
         public QueryExecutor(ILogger<Worker> logger, string orgName, string project, string personalAccessToken, int lastChangedWithinDays)
         {
+            if (string.IsNullOrEmpty(orgName))
+                throw new ArgumentException($"'{nameof(orgName)}' cannot be null or empty.", nameof(orgName));
+
             uri = new Uri("https://dev.azure.com/" + orgName);
-            this.logger = logger;
-            this.project = project;
-            this.personalAccessToken = personalAccessToken;
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            this.project = project ?? throw new ArgumentNullException(nameof(project));
+            this.personalAccessToken = personalAccessToken ?? throw new ArgumentNullException(nameof(personalAccessToken));
             this.lastChangedWithinDays = lastChangedWithinDays;
         }
 

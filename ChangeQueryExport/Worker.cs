@@ -36,6 +36,10 @@ namespace AdoQueries
             commands.ForEach(command => _logger.LogInformation($"Found plugin '{command.Name} - {command.Description}'"));
 
             List<IReportItem> workItems;
+            int queryDays;
+            if (!int.TryParse(Environment.GetEnvironmentVariable("QUERY_DAYS"), out queryDays))
+               throw new ArgumentOutOfRangeException("QUERY_DAYS", "QUERY_DAYS must be a valid integer.");
+
             // load Workitems
             using (tc.StartOperation<RequestTelemetry>("Query Workitems in " + Environment.GetEnvironmentVariable("PROJECT")))
             {
@@ -43,7 +47,7 @@ namespace AdoQueries
                                   Environment.GetEnvironmentVariable("ORGANIZATION"),
                                   Environment.GetEnvironmentVariable("PROJECT"),
                                   Environment.GetEnvironmentVariable("PERSONAL_ACCESS_TOKEN"),
-                                  int.Parse(Environment.GetEnvironmentVariable("QUERY_DAYS"))
+                                  queryDays
                                   );
                var task = queryExecutor.QueryWorkitems();
                task.Wait();
