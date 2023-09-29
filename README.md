@@ -2,7 +2,7 @@
 
 Keeping track of Azure DevOps items can be hard, if you need to monitor many items and they change rarely. This tool will help you by executing the query, looking for changes in the resulting items within the last x days and export the result to an HTML page.
 
-**Disclaimer:** *this tool does not shine with great coding, as this was not the purpose. Treat it like a demo and improve if you want to use it in a production way!*
+**Disclaimer:** *this tool does not shine with great coding, as this was not in scope. Treat it like a demo and improve if you want to use it in a production way!*
 
 # Description
 
@@ -47,10 +47,11 @@ I wanted to see changes on the associated items (in this case the Features) with
 - Azure DevOps Personal Access Token (PAT)
 - Query that returns linked items like in the screenshot above
 - ```.env``` file
+- ```appsettings.json``` file
 
 ## TODO
 
-- implement batching for Wiql queries
+- ...
 
 ## PAT
 
@@ -62,7 +63,7 @@ Create a new personal access token with "Work Items: Read" (copy the generated p
 
 ## ADO Query
 
-An existing query can be exported as **wiql** query in the editor.
+An existing query can be exported as **wiql** query in the editor, after you install this extension to Azure DevOps [Wiql Editor](https://marketplace.visualstudio.com/items?itemName=ottostreifel.wiql-editor).
 
 ![Export wiql query from editor](/assets/ado-query-export.png)
 
@@ -92,7 +93,7 @@ ORDER BY [ID]
 MODE (MustContain)
 ```
 
-This query needs to be copied to the file ```ado-query.wiql```. It is important to replace ```@project``` with ```'{0}'```, as the program will insert the project from the env file into the query prior executing.
+This query needs to be copied to the ```ado-query.wiql``` file. It is important to replace ```@project``` with ```'{0}'```, as the program will replace the project from the env file into the query prior executing.
 
 ## .env file
 
@@ -101,8 +102,13 @@ This file provides environment variables. Please create the file and fill the va
 ```batch
 ORGANIZATION=<your organization>
 PROJECT=<your project>
+QUERY_DAYS=7
 PERSONAL_ACCESS_TOKEN=<the pat created earlier>
 ```
+
+The organization is the first part in the URL after dev.azure.com. Project follows in the URL after the organization.
+
+With QUERY_DAYS you can configure how many days shall be taken into account when determining changes to an item.
 
 ## appsettings.json file
 
@@ -111,11 +117,6 @@ Application-specific configuration is done in the appsettings file. Create it in
 ```json
 {
    "Logging": {
-      "ApplicationInsights": {
-         "LogLevel": {
-            "WorkerServiceSampleWithApplicationInsights.Worker": "Information"
-         }
-      },
       "LogLevel": {
          "Default": "Information",
          "Microsoft": "Warning",
@@ -123,35 +124,33 @@ Application-specific configuration is done in the appsettings file. Create it in
       }
    },
    "ApplicationInsights": {
-      "ConnectionString" : "InstrumentationKey=00000000-0000-0000-0000-000000000000;"
+      "ConnectionString" : "InstrumentationKey=00000000-0000-0000-0000-000000000000;IngestionEndpoint=...;LiveEndpoint=..."
    }
 }
 ```
 
-Fill in the connection string in the application.json.
+Fill in the connection string to Application Insights in the application.json.
 
 ## Run the tool
 
-The [releases folder](/releases/) contains the application. In order to run it you need to
+The [releases folder](/releases/) might contain the application. In order to run it you need to
 
 1. add an ```.env``` file
 2. add an ```appsettings.json``` file
 2. adjust the wiql query in ```ado-query.wiql```
-3. execute ```.\AdoQueries.exe 7``` with an optional parameter to specify the number of days to look for changes. The default is 7.
+3. execute ```.\AdoQueries.exe```
 
 The output html will be stored in the same folder.
 
 # Build it
 
 ```powershell
-dotnet build
-dotnet publish -r win-x64
-dotnet publish -r linux-x64 --self-contained false
+dotnet publish --self-contained true
 ```
 
 ## Plugins
 
-Each plugin needs to be ```dotnet publish```ed and the output copied to the Plugins folder. An ILogger will be passed on to the Plugin. It is configured for the application in the appsettings.
+First create a folder ```Plugins``` in the directory of the **AdoQueries.exe** file. Then each plugin needs to be ```dotnet publish```ed and the output copied to the Plugins folder. An ILogger will be passed on to the Plugin. It is configured for the application in the appsettings.
 
 # Links
 
