@@ -1,0 +1,21 @@
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State]
+FROM workitemLinks
+WHERE
+    (
+        [Source].[System.TeamProject] = '{0}'
+        AND [Source].[System.WorkItemType] = 'Feedback'
+        AND [Source].[System.State] <> ''
+    )
+    AND (
+        [System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Reverse'
+    )
+    AND (
+        [Target].[System.TeamProject] = '{0}'
+        AND [Target].[System.WorkItemType] = 'Feature'
+    )
+ORDER BY [ID]
+MODE (MustContain)
