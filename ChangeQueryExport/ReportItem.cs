@@ -45,18 +45,25 @@ namespace AdoQueries
          {
             if (IgnoreFields.Contains(field.Key)) continue;
 
-            var oldVersionFound = false;
-            if (!previousItem.Fields.Any(f => f.Key == field.Key))
+            object previousValue = null;
+            // check if the direct previous version has the field
+            if (previousItem.Fields.Any(f => f.Key == field.Key))
+            {
+               // nothing to do, the previous version has the field
+               previousValue = Extensions.GetFieldValue<object>(previousItem.Fields[field.Key]);
+            }
+            else
             {
                // need to get the field value from the item version that are older than the current item
-               var olderRevisions = allRevisionItems.Where(r => r.Rev < currentItem.Rev.Value).OrderByDescending(r => r.Rev.Value).ToList();
+               var olderRevisions = allRevisionItems.Where(r => r.Rev.Value < currentItem.Rev.Value).OrderByDescending(r => r.Rev.Value).ToList();
                for (int i = 0; i < olderRevisions.Count; i++)
                {
                   var olderRevision = olderRevisions[i];
                   if (olderRevision.Fields.Any(f => f.Key == field.Key))
                   {
+                     // an older revision has a value. This is the previous value for the changed field
                      previousItem = olderRevision;
-                     oldVersionFound = true;
+                     previousValue = Extensions.GetFieldValue<object>(olderRevision.Fields[field.Key]);
                      break;
                   }
                }
@@ -65,13 +72,18 @@ namespace AdoQueries
             // check for a changed field value. 
             // if no old version was found to compare against, assume the field value has changed
             // Need to compare the string values, because the field value types are different depending the type of the field
-            if (!oldVersionFound || previousItem.Fields.ContainsKey(field.Key) && Extensions.GetFieldValue<string>(previousItem.Fields[field.Key]) != Extensions.GetFieldValue<string>(field.Value))
+            if (previousItem.Fields.ContainsKey(field.Key) && Extensions.GetFieldValue<string>(previousItem.Fields[field.Key]) != Extensions.GetFieldValue<string>(field.Value))
             {
-               //Trace.WriteLine($"Field {field.Key} has changed from {field.Value} to {currentItem.Fields[field.Key]}");
+               previousValue = Extensions.GetFieldValue<object>(previousItem.Fields[field.Key]);
+            }
+
+            // now the current and previous value are known. Only add them to the changed fields list, if the value has changed
+            if ((string)previousValue != Extensions.GetFieldValue<string>(field.Value))
+            {
                changedFields.Add(new ChangedField
                {
                   Key = field.Key,
-                  PreviousValue = oldVersionFound ? Extensions.GetFieldValue<object>(previousItem.Fields[field.Key]) : null,
+                  PreviousValue = previousValue,
                   CurrentValue = Extensions.GetFieldValue<object>(field.Value)
                });
             }

@@ -14,6 +14,10 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Changelog
 
+### 1.0.6
+
+- fixed old value being empty
+
 ### 1.0.5
 
 - fixed path for Linux to load Plugins
