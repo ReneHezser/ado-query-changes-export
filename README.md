@@ -137,7 +137,7 @@ Fill in the connection string to Application Insights in the application.json.
 
 ## Run the tool
 
-The [releases folder](/releases/) might contain the application. In order to run it you need to
+The [releases folder](/releases/) might contain the application. In order to run it you need to (everything in the same folder)
 
 1. add an ```.env``` file
 2. add an ```appsettings.json``` file
@@ -148,13 +148,25 @@ The output html will be stored in the same folder.
 
 # Build it
 
+To build the application open the workspace file in the root directory ```ChangeQueryExport.code-workspace```. Then, in the console of VSCode, build everything.
+
 ```powershell
+cd HtmlExportPlugin
+dotnet build
+```
+
+The plugin is built and copied to the Plugins folder.
+
+```powershell
+cd ..\ChangeQueryExport\
 dotnet publish --self-contained true
 ```
 
+After publishing the application to the ```bin\Debug\net7.0\win-x64\publish``` folder, the Plugin itself needs to be copied from the ```ChangeQueryExport\Plugin``` to the Plugin folder underneath the publish folder.
+
 ## Plugins
 
-First create a folder ```Plugins``` in the directory of the **AdoQueries.exe** file. Then each plugin needs to be ```dotnet publish```ed and the output copied to the Plugins folder. An ILogger will be passed on to the Plugin. It is configured for the application in the appsettings.
+Each plugin needs to be built and the output copied to the Plugins folder. An ILogger will be passed on to the Plugin and can be used for logging to Application Insights or the console. It is configured for the application in the ```appsettings.json``` file.
 
 # Links
 
