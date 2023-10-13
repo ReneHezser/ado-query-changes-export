@@ -19,10 +19,14 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 7.0.x
+    - name: Restore dependencies - HtmlExportPlugin
+      run: dotnet restore ./HtmlExportPlugin/HtmlExportPlugin.csproj
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore ./ChangeQueryExport/AdoQueries.csproj
+    - name: Build - HtmlExportPlugin
+      run: dotnet build --no-restore ./HtmlExportPlugin/HtmlExportPlugin.csproj
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore ./ChangeQueryExport/AdoQueries.csproj
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --verbosity normal ./ChangeQueryExport/AdoQueries.csproj
