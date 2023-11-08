@@ -12,6 +12,7 @@ namespace AdoQueries
       public List<IChangedField> ChangedFields { get; set; } = new List<IChangedField>();
       public string LinkToItem { get; set; }
       public string LinkToParent { get; set; }
+      public string EngineeringWorkItemURL { get; set; }
 
       public static string[] IgnoreFields { get; set; } = new[] {
       "System.CommentCount",

@@ -118,6 +118,7 @@ namespace AdoQueries
             // check all revisions that fall into the desired timeframe
             while (Extensions.GetFieldValue<DateTime>(currentItem.Fields["System.ChangedDate"]) >= DateTime.Now.AddDays(-lastChangedWithinDays))
             {
+                var engineeringWorkItemURL = workItem.Fields.ContainsKey("Custom.EngineeringWorkItemURL") ? Extensions.GetFieldValue<string>(workItem.Fields["Custom.EngineeringWorkItemURL"]) : null;
                 List<IChangedField> changes = ReportItem.GetChangedFields(previousItem, currentItem, revisions);
                 if (changes.Any())
                 {
@@ -126,6 +127,7 @@ namespace AdoQueries
                     {
                         // already added
                         var reportItem = reportItems.First(ri => ri.ID == workItem.Id.Value);
+                        if (!string.IsNullOrEmpty(engineeringWorkItemURL)) reportItem.EngineeringWorkItemURL = engineeringWorkItemURL;
                         reportItem.ChangedFields.AddRange(changes);
                     }
                     else
@@ -133,7 +135,7 @@ namespace AdoQueries
                         int length = workItem.Url.IndexOf("/revisions/");
                         if (length == -1) throw new ArgumentException(@"WorkItem.Url '{workItem.Url}' does not contain '/revisions/'");
                         var linkToItem = workItem.Url.Substring(0, length);
-                        reportItems.Add(new ReportItem
+                        var reportItem = new ReportItem
                         {
                             ID = workItem.Id.Value,
                             VersionID = workItem.Rev.Value,
@@ -141,7 +143,9 @@ namespace AdoQueries
                             LinkToItem = linkToItem,
                             LinkToParent = workItemLink.Source.Url,
                             ChangedFields = changes
-                        });
+                        };
+                        if (!string.IsNullOrEmpty(engineeringWorkItemURL)) reportItem.EngineeringWorkItemURL = engineeringWorkItemURL;
+                        reportItems.Add(reportItem);
                     }
                 }
 
