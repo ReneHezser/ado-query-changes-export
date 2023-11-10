@@ -97,7 +97,7 @@ namespace PluginBase
       /// Update the ADO item with the changes from a class. Decorate the properties of the class with a DescriptionAttribute that matches the ADO field name.
       /// </summary>
       /// <param name="workItem"></param>
-      public static JsonPatchDocument UpdateAdoItem<T>(this T pluginClass, WorkItem workItem, ILogger logger = null)
+      public static JsonPatchDocument UpdateAdoItem<T>(this T pluginClass, WorkItem workItem, ILogger logger = null, Func<string, string, bool> excludeChangeCondition = null)
       {
          JsonPatchDocument patches = new JsonPatchDocument();
 
@@ -111,10 +111,22 @@ namespace PluginBase
                // properties that do not have a description are ignored
                if (adoFieldName == null) continue;
 
+               var propertyStringValue = (propertyValue ?? string.Empty).ToString();
                // Empty fields will not be available in workItem.Fields and need to be updated
-               // do not update fields that did not change (have already been changed)
-               if (workItem.Fields.ContainsKey(adoFieldName) && string.Equals(GetFieldValue<string>(workItem.Fields[adoFieldName]), (propertyValue ?? string.Empty).ToString(), StringComparison.OrdinalIgnoreCase))
+               if (workItem.Fields.ContainsKey(adoFieldName) &&
+                  // do not update fields that did not change (have already been changed)
+                  string.Equals(GetFieldValue<string>(workItem.Fields[adoFieldName]), propertyStringValue, StringComparison.OrdinalIgnoreCase))
                   continue;
+
+               if (excludeChangeCondition != null)
+               {
+                  // do not update fields that do not meet the condition
+                  if (workItem.Fields.ContainsKey(adoFieldName))
+                  {
+                     bool excludeChange = excludeChangeCondition(GetFieldValue<string>(workItem.Fields[adoFieldName]), propertyStringValue);
+                     if (excludeChange) continue;
+                  }
+               }
 
                logger?.LogDebug($"\tUpdating {adoFieldName} to {propertyValue}");
                patches.Add(new JsonPatchOperation
