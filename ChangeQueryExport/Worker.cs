@@ -13,13 +13,13 @@ namespace AdoQueries
       private static string version = "1.0.7";
 
       private readonly ILogger<Worker> _logger;
-      private TelemetryClient tc;
+      private TelemetryClient _telemetryClient;
       private IHostApplicationLifetime _hostLifetime;
 
       public Worker(IHostApplicationLifetime hostLifetime, ILogger<Worker> logger, TelemetryClient tc)
       {
          _logger = logger;
-         this.tc = tc;
+         _telemetryClient = tc;
          _hostLifetime = hostLifetime ?? throw new ArgumentNullException(nameof(hostLifetime));
       }
 
@@ -29,7 +29,6 @@ namespace AdoQueries
          {
             // By default only Warning of above is captured.
             // However the following Info level will be captured by ApplicationInsights,
-            // as appsettings.json configured Information level for the category 'WorkerServiceSampleWithApplicationInsights.Worker'
             _logger.LogInformation("Worker running version {version} at: {time}", version, DateTimeOffset.Now);
 
             var commands = LoadAndExecutePlugins();
@@ -41,7 +40,7 @@ namespace AdoQueries
                throw new ArgumentOutOfRangeException("QUERY_DAYS", "QUERY_DAYS must be a valid integer.");
 
             // load Workitems
-            using (tc.StartOperation<RequestTelemetry>("Query Workitems in " + Environment.GetEnvironmentVariable("PROJECT")))
+            using (_telemetryClient.StartOperation<RequestTelemetry>("Query Workitems in " + Environment.GetEnvironmentVariable("PROJECT")))
             {
                var queryExecutor = new QueryExecutor(_logger,
                                   Environment.GetEnvironmentVariable("ORGANIZATION"),
@@ -52,14 +51,15 @@ namespace AdoQueries
                var task = queryExecutor.QueryWorkitems();
                task.Wait();
                workItems = task.Result;
-               tc.Flush();
+               _telemetryClient.TrackEvent("ADO Sync Worker completed {0} items", new Dictionary<string, string> { { "Workitems", workItems.Count.ToString() } });
+               _telemetryClient.Flush();
             }
 
             // do something with the workitems for each Plugin
             foreach (IPlugin command in commands)
             {
                using (_logger.BeginScope("Worker.PluginExecution"))
-               using (tc.StartOperation<RequestTelemetry>("Command: " + command.Name))
+               using (_telemetryClient.StartOperation<RequestTelemetry>("Command: " + command.Name))
                {
                   try
                   {
@@ -73,11 +73,12 @@ namespace AdoQueries
                   finally
                   {
                      // ensure all telemetry is flushed before exiting
-                     tc.Flush();
+                     _telemetryClient.Flush();
                   }
                }
             }
 
+            await Task.Delay(1000, stoppingToken);
             _hostLifetime.StopApplication();
          }
       }
