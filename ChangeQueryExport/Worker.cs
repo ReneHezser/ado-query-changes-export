@@ -51,8 +51,6 @@ namespace AdoQueries
                var task = queryExecutor.QueryWorkitems();
                task.Wait();
                workItems = task.Result;
-               _telemetryClient.TrackEvent("ADO Sync Worker completed {0} items", new Dictionary<string, string> { { "Workitems", workItems.Count.ToString() } });
-               _telemetryClient.Flush();
             }
 
             // do something with the workitems for each Plugin
@@ -77,6 +75,9 @@ namespace AdoQueries
                   }
                }
             }
+
+            _telemetryClient.TrackEvent($"ADO Sync Worker completed {workItems.Count} items", metrics: new Dictionary<string, double> { { "Workitems", workItems.Count } });
+            _telemetryClient.Flush();
 
             await Task.Delay(1000, stoppingToken);
             _hostLifetime.StopApplication();
