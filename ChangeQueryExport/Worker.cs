@@ -62,7 +62,8 @@ namespace AdoQueries
                   try
                   {
                      _logger.LogDebug($"Executing '{command.Name} - {command.Description}'");
-                     command.Execute(workItems);
+                     int affectedItems = command.Execute(workItems);
+                     _logger.LogInformation($"Executed '{command.Name} - {command.Description}' on {affectedItems} items");
                   }
                   catch (Exception ex)
                   {
