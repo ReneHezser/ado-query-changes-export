@@ -21,6 +21,8 @@ namespace AdoQueries
       "System.Watermark"
       };
 
+      public static string[] IgnoreChangedBy { get; set; } = Array.Empty<string>();
+
       override public string ToString()
       {
          var sb = new StringBuilder();
@@ -90,7 +92,8 @@ namespace AdoQueries
             }
          }
 
-         if (Extensions.GetFieldValue<string>(currentItem.Fields["System.ChangedBy"]) == "scrpts")
+         string changedBy = Extensions.GetFieldValue<string>(currentItem.Fields["System.ChangedBy"]);
+         if (IgnoreChangedBy.Any(cb => cb == changedBy))
          {
             // don't add changes by scrpts
             changedFields.Clear();

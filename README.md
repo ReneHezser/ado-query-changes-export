@@ -14,6 +14,10 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Changelog
 
+### 1.0.8
+
+- added the option to exclude item versions that have been modified by a specific user
+
 ### 1.0.7
 
 - added the option to implement a custom "ignore certain changes" like "don't overwrite values with an empty value".

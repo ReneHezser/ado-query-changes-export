@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace PluginBase
 {
-    public interface IReportItem
+   public interface IReportItem
    {
       public int ID { get; set; }
       public int VersionID { get; set; }
@@ -13,5 +13,10 @@ namespace PluginBase
       public string EngineeringWorkItemURL { get; set; }
 
       public static string[] IgnoreFields { get; set; }
+      /// <summary>
+      /// Ignore versions, that have been changed by these users.
+      /// </summary>
+      public static string[] IgnoreChangedBy { get; set; }
+
    }
 }
