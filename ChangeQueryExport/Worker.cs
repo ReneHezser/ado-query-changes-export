@@ -33,6 +33,7 @@ namespace AdoQueries
 
             var commands = LoadAndExecutePlugins();
             commands.ForEach(command => _logger.LogInformation($"Found plugin '{command.Name} - {command.Description}'"));
+            if (commands.Count() == 0) throw new Exception("No plugins found.");
 
             List<IReportItem> workItems;
             int queryDays;
@@ -90,6 +91,7 @@ namespace AdoQueries
          // Paths from where plugins are loaded
          string[] pluginPaths = new string[]
          {
+            Directory.GetCurrentDirectory(),
             Path.Combine(new string[]{ Directory.GetCurrentDirectory() , "Plugins"})
          };
 
@@ -113,13 +115,17 @@ namespace AdoQueries
 
          foreach (var pluginFile in pluginFiles)
          {
-            _logger.LogDebug("Trying to load {pluginFile} as IPlugin", pluginFile.FullName);
-            yield return loadContext.LoadFromAssemblyPath(pluginFile.FullName);
+            string fullName = pluginFile.FullName;
+            if (pluginFile.Name.StartsWith("Microsoft.")|| pluginFile.Name.StartsWith("System.")) continue;
+
+            _logger.LogDebug("Trying to load {pluginFile} as IPlugin", fullName);
+            yield return loadContext.LoadFromAssemblyPath(fullName);
          }
       }
 
       private IEnumerable<IPlugin> CreateCommands(IEnumerable<Assembly> assemblies)
       {
+         Type pluginType = typeof(IPlugin);
          int count = 0;
          foreach (var assembly in assemblies)
          {
@@ -133,12 +139,13 @@ namespace AdoQueries
                _logger.LogError(ex.Message);
                continue;
             }
-            foreach (Type type in assembly.GetTypes())
+            foreach (Type assemblyType in assembly.GetTypes())
             {
-               _logger.LogDebug("Trying to create instance of {type}", type.FullName);
-               if (typeof(IPlugin).IsAssignableFrom(type))
+               string? typename = assemblyType.FullName;
+               _logger.LogDebug("Trying to create instance of {type}", typename);
+               if (pluginType.IsAssignableFrom(assemblyType))// || assemblyType.GetInterface(pluginType.Name)?.UnderlyingSystemType.FullName == pluginType.FullName)
                {
-                  var result = Activator.CreateInstance(type) as IPlugin;
+                  IPlugin result = (IPlugin)Activator.CreateInstance(assemblyType);
                   if (result != null)
                   {
                      // assign logger to plugin
