@@ -17,7 +17,9 @@ namespace PluginBase
 
          if (!File.Exists(filePath))
          {
-            throw new FileNotFoundException($"File not found: {filePath}");
+            Console.WriteLine("File not found: {0}", filePath);
+            return;
+            //throw new FileNotFoundException($"File not found: {filePath}");
          }
 
          foreach (var line in File.ReadAllLines(filePath))
