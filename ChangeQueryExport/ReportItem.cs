@@ -8,11 +8,11 @@ namespace AdoQueries
    {
       public int ID { get; set; }
       public int VersionID { get; set; }
-      public string Title { get; set; }
+      public string? Title { get; set; }
       public List<IChangedField> ChangedFields { get; set; } = new List<IChangedField>();
-      public string LinkToItem { get; set; }
-      public string LinkToParent { get; set; }
-      public string EngineeringWorkItemURL { get; set; }
+      public string? LinkToItem { get; set; }
+      public string? LinkToParent { get; set; }
+      public string? EngineeringWorkItemURL { get; set; }
 
       public static string[] IgnoreFields { get; set; } = new[] {
       "System.CommentCount",
@@ -48,7 +48,7 @@ namespace AdoQueries
          {
             if (IgnoreFields.Contains(field.Key)) continue;
 
-            object previousValue = null;
+            object? previousValue = null;
             // check if the direct previous version has the field
             if (previousItem.Fields.Any(f => f.Key == field.Key))
             {
@@ -81,7 +81,7 @@ namespace AdoQueries
             }
 
             // now the current and previous value are known. Only add them to the changed fields list, if the value has changed
-            if ((string)previousValue != Extensions.GetFieldValue<string>(field.Value))
+            if (previousValue != null && (string)previousValue != Extensions.GetFieldValue<string>(field.Value))
             {
                changedFields.Add(new ChangedField
                {

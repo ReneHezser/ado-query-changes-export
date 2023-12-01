@@ -26,10 +26,11 @@ namespace AdoQueries
         ///     A Personal Access Token, find out how to create one:
         ///     <see href="/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops" />.
         /// </param>
-        public QueryExecutor(ILogger<Worker> logger, string orgName, string project, string personalAccessToken, int lastChangedWithinDays)
+        public QueryExecutor(ILogger<Worker> logger, string? orgName, string? project, string? personalAccessToken, int lastChangedWithinDays)
         {
-            if (string.IsNullOrEmpty(orgName))
-                throw new ArgumentException($"'{nameof(orgName)}' cannot be null or empty.", nameof(orgName));
+            if (string.IsNullOrEmpty(orgName)) throw new ArgumentException($"'{nameof(orgName)}' cannot be null or empty.", nameof(orgName));
+            if (string.IsNullOrEmpty(project)) throw new ArgumentException($"'{nameof(project)}' cannot be null or empty.", nameof(project));
+            if (string.IsNullOrEmpty(personalAccessToken)) throw new ArgumentException($"'{nameof(personalAccessToken)}' cannot be null or empty.", nameof(personalAccessToken));
 
             uri = new Uri("https://dev.azure.com/" + orgName);
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -105,6 +106,8 @@ namespace AdoQueries
 
         private void GetWorkitemChanges(WorkItemManager workItemManager, WorkItem workItem, WorkItemLink workItemLink, List<IReportItem> reportItems)
         {
+            if (workItem.Id == null) throw new ArgumentException("WorkItem.Id is null");
+            if (workItem.Rev == null) throw new ArgumentException("WorkItem.Rev is null");
             var changedDate = Extensions.GetFieldValue<DateTime>(workItem.Fields["System.ChangedDate"]);
             if (changedDate <= DateTime.Now.AddDays(-lastChangedWithinDays)) return;
 
@@ -138,7 +141,7 @@ namespace AdoQueries
                         var reportItem = new ReportItem
                         {
                             ID = workItem.Id.Value,
-                            VersionID = workItem.Rev.Value,
+                            VersionID = workItem.Rev ?? 0,
                             Title = Extensions.GetFieldValue<string>(workItem.Fields["System.Title"]),
                             LinkToItem = linkToItem,
                             LinkToParent = workItemLink.Source.Url,

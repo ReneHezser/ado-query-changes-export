@@ -12,12 +12,20 @@ namespace AdoQueries
          _resolver = new AssemblyDependencyResolver(pluginPath);
       }
 
-      protected override Assembly Load(AssemblyName assemblyName)
+      protected override Assembly? Load(AssemblyName assemblyName)
       {
-         string assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
-         if (assemblyPath != null)
+         try
          {
-            return LoadFromAssemblyPath(assemblyPath);
+            string assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
+            if (assemblyPath != null)
+            {
+               Assembly assembly = LoadFromAssemblyPath(assemblyPath);
+               return assembly;
+            }
+         }
+         catch (Exception ex)
+         {
+            Console.WriteLine($"Cannot load assembly {assemblyName.Name} from plugin path. {ex.Message}");
          }
 
          return null;

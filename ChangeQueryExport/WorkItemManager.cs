@@ -42,7 +42,7 @@ class WorkItemManager
 
    internal async Task<IEnumerable<WorkItem>> GetWorkItemsAsync(IList<int> ids, DateTime asOf, WorkItemExpand expand)
    {
-      using (logger.BeginScope("WorkItemManager.GetWorkItemsAsync ({ids.Length} items)"))
+      using (logger.BeginScope($"WorkItemManager.GetWorkItemsAsync ({ids.Count} items)"))
       {
          // query only items that have not been queried before
          var idsToQuery = ids.Where(id => !workItems.Any(wi => wi.Id == id));

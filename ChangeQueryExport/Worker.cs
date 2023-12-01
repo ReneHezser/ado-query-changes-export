@@ -1,16 +1,16 @@
+using McMaster.NETCore.Plugins;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Services.Common;
 using PluginBase;
-using System.Reflection;
 
 namespace AdoQueries
 {
    public class Worker : BackgroundService
    {
-      private static string version = "1.0.8";
+      private static string version = "1.0.9";
 
       private readonly ILogger<Worker> _logger;
       private TelemetryClient _telemetryClient;
@@ -31,9 +31,16 @@ namespace AdoQueries
             // However the following Info level will be captured by ApplicationInsights,
             _logger.LogInformation("Worker running version {version} at: {time}", version, DateTimeOffset.Now);
 
-            var commands = LoadAndExecutePlugins();
+            // Paths from where plugins are loaded
+            string[] pluginPaths = new string[]
+            {
+               Directory.GetCurrentDirectory(),
+               Path.Combine(new string[]{ Directory.GetCurrentDirectory() , "Plugins"})
+            };
+
+            var commands = LoadAndExecutePlugins(pluginPaths);
             commands.ForEach(command => _logger.LogInformation($"Found plugin '{command.Name} - {command.Description}'"));
-            if (commands.Count() == 0) throw new Exception("No plugins found.");
+            if (commands.Count() == 0) throw new Exception("No plugins found in " + pluginPaths.Aggregate((a, b) => a + ", " + b));
 
             List<IReportItem> workItems;
             int queryDays;
@@ -68,7 +75,7 @@ namespace AdoQueries
                   }
                   catch (Exception ex)
                   {
-                     _logger.LogError(ex, $"Error executing '{command.Name} - {command.Description}'");
+                     _logger.LogError(ex, $"Error executing '{command.Name}': {ex.Message}");
                   }
                   finally
                   {
@@ -86,84 +93,50 @@ namespace AdoQueries
          }
       }
 
-      private IEnumerable<IPlugin> LoadAndExecutePlugins()
+      private IEnumerable<IPlugin> LoadAndExecutePlugins(string[] pluginPaths)
       {
-         // Paths from where plugins are loaded
-         string[] pluginPaths = new string[]
-         {
-            Directory.GetCurrentDirectory(),
-            Path.Combine(new string[]{ Directory.GetCurrentDirectory() , "Plugins"})
-         };
+         IList<IPlugin> commands = new List<IPlugin>();
 
-         IEnumerable<IPlugin> commands = pluginPaths.SelectMany(pluginPath =>
+         foreach (var pluginPath in pluginPaths)
          {
-            IEnumerable<Assembly> pluginAssemblies = LoadPlugin(pluginPath);
-            return CreateCommands(pluginAssemblies);
-         }).ToList();
+            // load plugins
+            var plugins = LoadPlugin(pluginPath);
+            // create instances of the plugins
+            foreach (var loader in plugins)
+            {
+               foreach (var pluginType in loader
+                   .LoadDefaultAssembly()
+                   .GetTypes()
+                   .Where(t => typeof(IPlugin).IsAssignableFrom(t) && !t.IsAbstract))
+               {
+                  // This assumes the implementation of IPlugin has a parameterless constructor
+                  IPlugin plugin = (IPlugin)Activator.CreateInstance(pluginType);
+                  plugin.Logger = _logger;
+                  commands.Add(plugin);
+                  Console.WriteLine($"Created plugin instance '{plugin.Name}'.");
+               }
+            }
+         }
 
          return commands;
       }
 
-      private IEnumerable<Assembly> LoadPlugin(string pluginLocation)
+      private List<PluginLoader> LoadPlugin(string pluginLocation)
       {
          _logger.LogInformation($"Loading commands from: {pluginLocation}");
-         var loadContext = new PluginLoadContext(pluginLocation);
 
          // Plugins are dll files. Dependencies for plugins are placed in the same folder and are dlls as well
          FileInfo[] pluginFiles = new DirectoryInfo(pluginLocation).GetFiles("*.dll");
          _logger.LogDebug("Found {count} dll files", pluginFiles.Length);
+         var plugins = new List<PluginLoader>();
 
          foreach (var pluginFile in pluginFiles)
          {
-            string fullName = pluginFile.FullName;
-            if (pluginFile.Name.StartsWith("Microsoft.")|| pluginFile.Name.StartsWith("System.")) continue;
-
-            _logger.LogDebug("Trying to load {pluginFile} as IPlugin", fullName);
-            yield return loadContext.LoadFromAssemblyPath(fullName);
+            var loader = PluginLoader.CreateFromAssemblyFile(pluginFile.FullName, sharedTypes: new[] { typeof(IPlugin) });
+            plugins.Add(loader);
          }
-      }
 
-      private IEnumerable<IPlugin> CreateCommands(IEnumerable<Assembly> assemblies)
-      {
-         Type pluginType = typeof(IPlugin);
-         int count = 0;
-         foreach (var assembly in assemblies)
-         {
-            _logger.LogInformation($"Loading commands from: {assembly} from {assembly.Location}.");
-            try
-            {
-               assembly.GetTypes();
-            }
-            catch (ReflectionTypeLoadException ex)
-            {
-               _logger.LogError(ex.Message);
-               continue;
-            }
-            foreach (Type assemblyType in assembly.GetTypes())
-            {
-               string? typename = assemblyType.FullName;
-               _logger.LogDebug("Trying to create instance of {type}", typename);
-               if (pluginType.IsAssignableFrom(assemblyType))// || assemblyType.GetInterface(pluginType.Name)?.UnderlyingSystemType.FullName == pluginType.FullName)
-               {
-                  IPlugin result = (IPlugin)Activator.CreateInstance(assemblyType);
-                  if (result != null)
-                  {
-                     // assign logger to plugin
-                     result.Logger = _logger;
-
-                     count++;
-                     yield return result;
-                  }
-               }
-            }
-
-            if (count == 0)
-            {
-               _logger.LogInformation($"No commands found in {assembly} from {assembly.Location}. Loading assembly as resource library.");
-               // load dll, which has been placed here by plugins
-               Assembly.LoadFrom(assembly.Location);
-            }
-         }
+         return plugins;
       }
    }
 }
