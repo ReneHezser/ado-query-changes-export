@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Handlebars.Net" Version="2.1.4" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PluginBase\PluginBase.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="handlebars-template.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- copy sample Plugin to Plugin directory of the main program -->
+  <ItemGroup>
+    <SamplePluginFiles Include="$(TargetDir)publish\*.*" />
+  </ItemGroup>
+  <Target Name="CopySamplePluginFiles" AfterTargets="AfterBuild">
+    <Copy SourceFiles="@(SamplePluginFiles)" DestinationFolder="$(BaseOutputPath)\..\..\ChangeQueryExport\Plugins" />
+  </Target>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="rd ..\ChangeQueryExport\Plugins /S /Q&#xD;&#xA;md ..\ChangeQueryExport\Plugins&#xD;&#xA;copy bin\Debug\net7.0\ ..\ChangeQueryExport\Plugins&#xD;&#xA;copy PPTXExportPlugin_Template.pptx ..\ChangeQueryExport\Plugins" />
+  </Target>
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="rd bin /S /Q" />
+  </Target>
+
+</Project>
