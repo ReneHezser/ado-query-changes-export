@@ -34,7 +34,7 @@
     <Exec Command="rd bin /S /Q" />
   </Target>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="rd ..\ChangeQueryExport\Plugins /S /Q&#xD;&#xA;md ..\ChangeQueryExport\Plugins&#xD;&#xA;copy bin\Debug\net7.0\ ..\ChangeQueryExport\Plugins&#xD;&#xA;copy PPTXExportPlugin_Template.pptx ..\ChangeQueryExport\Plugins" />
+    <Exec Command="attrib +r &quot;..\ChangeQueryExport\Plugins\copy plugins here.txt&quot;&#xD;&#xA;attrib +r &quot;..\ChangeQueryExport\Plugins\.gitignore&quot;&#xD;&#xA;del /q &quot;..\ChangeQueryExport\Plugins\*&quot;&#xD;&#xA;copy bin\Debug\net7.0\ ..\ChangeQueryExport\Plugins&#xD;&#xA;copy PPTXExportPlugin_Template.pptx ..\ChangeQueryExport\Plugins&#xD;&#xA;attrib -r &quot;..\ChangeQueryExport\Plugins\copy plugins here.txt&quot;&#xD;&#xA;attrib -r &quot;..\ChangeQueryExport\Plugins\.gitignore&quot;" />
   </Target>
 
 </Project>
