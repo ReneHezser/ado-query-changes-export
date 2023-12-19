@@ -91,7 +91,8 @@ namespace PPTXExportPlugin
             using (PresentationDocument presentationDocument = PresentationDocument.Open($"{targetFile}", true))
             {
                 // Pass the source document and all information of the slide to be inserted to the next method. (Overview, SingleChange) (HeaderX, ContentX)
-                InsertNewSlide(presentationDocument, "My new slide", "Overview", "Content1", "Content1", 1);
+                
+                InsertNewSlideWithText(presentationDocument, "My new slide", "Overview", new string[,] { {"Header1","Überschrift1"}, {"Content1","Text1"}, { "Header2", "Überschrift2" }, { "Content2", "Text2" } }, 1);
 
             }
 
@@ -99,7 +100,7 @@ namespace PPTXExportPlugin
         }
 
         // Insert the specified slide into the presentation at the specified position.
-        internal void InsertNewSlide(PresentationDocument presentationDocument, string slideTitle, string slideLayout, string slideContentName, string slideContentText, int? slidePosition = null)
+        internal void InsertNewSlideWithText(PresentationDocument presentationDocument, string slideTitle, string slideLayout, string[,] slideContent, int? slidePosition = null)
         {
             PresentationPart? presentationPart = presentationDocument.PresentationPart;
 
@@ -153,35 +154,47 @@ namespace PPTXExportPlugin
                     new Drawing.ListStyle(),
                     new Drawing.Paragraph(new Drawing.Run(new Drawing.Text() { Text = slideTitle })));
 
-            // Find content placeholder by name and add text to it.
-            Shape shape = null;
-            try
+            for (int slideContentPosition = 0; slideContentPosition < slideContent.GetLength(0); slideContentPosition++)
             {
-                // Find placeholder index by name
-                ShapeTree shapeTree2 = slideLayoutPart.SlideLayout.CommonSlideData.ShapeTree;
-                shape = shapeTree2.Descendants<Shape>().First(s => s.NonVisualShapeProperties.NonVisualDrawingProperties.Name.Value == slideContentName);
-            }
-            catch
-            {
-                shape = null;
-                Logger.LogWarning($@"Placeholder '{slideContentName}' not found.");
-            }
-            if (shape != null)
-            {
-                // Declare and instantiate the body shape of the new slide.
-                Shape bodyShape = shapeTree.AppendChild(new Shape());
-                drawingObjectId++;
+                // Find content placeholder by name and add text to it.
+                Shape shape = null;
+                try
+                {
+                    // Find placeholder index by name
+                    ShapeTree shapeTree2 = slideLayoutPart.SlideLayout.CommonSlideData.ShapeTree;
+                    shape = shapeTree2.Descendants<Shape>().First(s => s.NonVisualShapeProperties.NonVisualDrawingProperties.Name.Value == slideContent[slideContentPosition, 0]);
+                }
+                catch
+                {
+                    shape = null;
+                    Logger.LogWarning($@"Placeholder '{slideContent[slideContentPosition, 0]}' not found.");
+                }
+                if (shape != null)
+                {
+                    // Declare and instantiate the body shape of the new slide.
+                    Shape bodyShape = shapeTree.AppendChild(new Shape());
+                    drawingObjectId++;
 
-                // Specify the required shape properties for the body shape.
-                bodyShape.NonVisualShapeProperties = new NonVisualShapeProperties(new NonVisualDrawingProperties() { Id = drawingObjectId, Name = slideContentName },
-                        new NonVisualShapeDrawingProperties(new Drawing.ShapeLocks() { NoGrouping = true }),
-                        new ApplicationNonVisualDrawingProperties(new PlaceholderShape() { Index = shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties.PlaceholderShape.Index }));
-                bodyShape.ShapeProperties = new ShapeProperties();
+                    // Specify the required shape properties for the body shape.
+                    try
+                    {
+                        bodyShape.NonVisualShapeProperties = new NonVisualShapeProperties(new NonVisualDrawingProperties() { Id = drawingObjectId, Name = slideContent[slideContentPosition, 0] },
+                                new NonVisualShapeDrawingProperties(new Drawing.ShapeLocks() { NoGrouping = true }),
+                                new ApplicationNonVisualDrawingProperties(new PlaceholderShape() { Index = shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties.PlaceholderShape.Index }));
+                        bodyShape.ShapeProperties = new ShapeProperties();
 
-                // Specify the text of the body shape.
-                bodyShape.TextBody = new TextBody(new Drawing.BodyProperties(),
-                        new Drawing.ListStyle(),
-                        new Drawing.Paragraph(new Drawing.Run(new Drawing.Text() { Text = slideContentText })));
+                        // Specify the text of the body shape.
+                        bodyShape.TextBody = new TextBody(new Drawing.BodyProperties(),
+                                new Drawing.ListStyle(),
+                                new Drawing.Paragraph(new Drawing.Run(new Drawing.Text() { Text = slideContent[slideContentPosition, 1] })));
+                    }
+                    catch (NullReferenceException)
+                    {
+                        shapeTree.RemoveChild(shapeTree.LastChild);
+                        drawingObjectId--;
+                        Logger.LogWarning($@"Object '{slideContent[slideContentPosition, 0]}' exists but is not a placeholder.");
+                    }
+                }
             }
 
             // Modify the slide ID list in the presentation part.
