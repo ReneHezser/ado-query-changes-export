@@ -25,9 +25,9 @@ namespace PPTXExportPlugin
         {
             if (Logger is null) throw new ArgumentNullException(nameof(Logger));
 
-            Console.WriteLine("Started.");
+            Logger.LogInformation("PPTX export plugin started.");
             CreatePPTX(items);
-            Console.WriteLine("Finished.");
+            Logger.LogInformation("PPTX export plugin finished.");
             return 0;
         }
 
@@ -55,41 +55,51 @@ namespace PPTXExportPlugin
         internal void CreatePPTX(List<IReportItem> workItems)
         {
             string source;
+            var templateFile = Path.Combine(new[] { "Plugins", "PPTXExportPlugin_Template.pptx" });
             try
-            {
-            var templatePath = Path.Combine(new[] { "Plugins", "PPTXExportPlugin_Template.pptx" });
-            source = File.ReadAllText(templatePath);
+            {                
+                source = File.ReadAllText(templateFile);
             }
             catch (FileNotFoundException)
             {
-            Logger.LogInformation("Cannot find the PPTX template 'PPTXExportPlugin_Template.pptx' in the Plugins folder. Please make sure it is there and try again.");
-            return;
+                Logger.LogCritical("Cannot find the PPTX template 'PPTXExportPlugin_Template.pptx' in the Plugins folder. Please make sure it is there and try again.");
+                return;
             }
 
-            string filename = $"{Environment.GetEnvironmentVariable("ORGANIZATION")}-{Environment.GetEnvironmentVariable("PROJECT")}-{DateTime.Now.ToShortDateString().Replace("/", "-")}-Export";
+            string targetFile = $"{Environment.GetEnvironmentVariable("ORGANIZATION")}-{Environment.GetEnvironmentVariable("PROJECT")}-{DateTime.Now.ToShortDateString().Replace("/", "-")}-Export.pptx";
+
+            try
+            {
+                File.Copy(templateFile, targetFile, true);
+                Logger.LogInformation($@"PowerPoint target file '{targetFile}' created from template '.\{templateFile}'.");
+            }
+            catch (IOException)
+            {
+                Logger.LogCritical("Cannot copy the PowerPoint template 'PPTXExportPlugin_Template.pptx' from the Plugins folder to the application folder. Please check permissions and try again.");
+                return;
+            }
 
             var data = new
             {
-            title = filename,
+            title = targetFile,
             ReportItems = FilterItems(workItems)
             };
-            InsertNewSlide(@"Plugins\PPTXExportPlugin_Template.pptx", 1, "My new slide");
-            Logger.LogInformation($"PPTX file written to {filename}.pptx");
-        }
 
-        // Insert a slide into the specified presentation.
-        static void InsertNewSlide(string presentationFile, int position, string slideTitle)
-        {
+            Logger.LogInformation($@"PowerPoint target file '{targetFile}' processing started.");
+
             // Open the source document as read/write. 
-            using (PresentationDocument presentationDocument = PresentationDocument.Open(presentationFile, true))
+            using (PresentationDocument presentationDocument = PresentationDocument.Open($"{targetFile}", true))
             {
-                // Pass the source document and the position and title of the slide to be inserted to the next method.
-                InsertNewSlideFromPresentation(presentationDocument, position, slideTitle);
+                // Pass the source document and all information of the slide to be inserted to the next method. (Overview, SingleChange) (HeaderX, ContentX)
+                InsertNewSlide(presentationDocument, "My new slide", "Overview", "Content1", "Content1", 1);
+
             }
+
+            Logger.LogInformation($@"PowerPoint target file '{targetFile}' processing finished.");
         }
 
         // Insert the specified slide into the presentation at the specified position.
-        static void InsertNewSlideFromPresentation(PresentationDocument presentationDocument, int position, string slideTitle)
+        internal void InsertNewSlide(PresentationDocument presentationDocument, string slideTitle, string slideLayout, string slideContentName, string slideContentText, int? slidePosition = null)
         {
             PresentationPart? presentationPart = presentationDocument.PresentationPart;
 
@@ -117,7 +127,7 @@ namespace PPTXExportPlugin
 
             // Select master slide layout and add to slide.
             SlideMasterPart slideMasterPart = presentationPart.SlideMasterParts.First();
-            SlideLayoutPart slideLayoutPart = slideMasterPart.SlideLayoutParts.SingleOrDefault(sl => sl.SlideLayout.CommonSlideData.Name.Value.Equals("Test", StringComparison.OrdinalIgnoreCase));
+            SlideLayoutPart slideLayoutPart = slideMasterPart.SlideLayoutParts.SingleOrDefault(sl => sl.SlideLayout.CommonSlideData.Name.Value.Equals(slideLayout, StringComparison.OrdinalIgnoreCase));
             slidePart.AddPart(slideLayoutPart);
 
             //// Save the new slide part.
@@ -141,43 +151,47 @@ namespace PPTXExportPlugin
             // Specify the text of the title shape.
             titleShape.TextBody = new TextBody(new Drawing.BodyProperties(),
                     new Drawing.ListStyle(),
-                    new Drawing.Paragraph(new Drawing.Run(new Drawing.Text() { Text = "Title Text" })));
+                    new Drawing.Paragraph(new Drawing.Run(new Drawing.Text() { Text = slideTitle })));
 
-            // Declare and instantiate the body shape of the new slide.
-            Shape bodyShape = shapeTree.AppendChild(new Shape());
-            drawingObjectId++;
-
-            // Find placeholder index by name
-            UInt32Value slideTextContentPlaceholderIndex = null;
-            ShapeTree shapeTree2 = slideLayoutPart.SlideLayout.CommonSlideData.ShapeTree;
-            Shape shape = shapeTree2.Descendants<Shape>().FirstOrDefault(s => s.NonVisualShapeProperties.NonVisualDrawingProperties.Name.Value == "textfield2");
+            // Find content placeholder by name and add text to it.
+            Shape shape = null;
+            try
+            {
+                // Find placeholder index by name
+                ShapeTree shapeTree2 = slideLayoutPart.SlideLayout.CommonSlideData.ShapeTree;
+                shape = shapeTree2.Descendants<Shape>().First(s => s.NonVisualShapeProperties.NonVisualDrawingProperties.Name.Value == slideContentName);
+            }
+            catch
+            {
+                shape = null;
+                Logger.LogWarning($@"Placeholder '{slideContentName}' not found.");
+            }
             if (shape != null)
             {
-                slideTextContentPlaceholderIndex = shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties.PlaceholderShape.Index;
-                Console.WriteLine(slideTextContentPlaceholderIndex.ToString());
+                // Declare and instantiate the body shape of the new slide.
+                Shape bodyShape = shapeTree.AppendChild(new Shape());
+                drawingObjectId++;
+
+                // Specify the required shape properties for the body shape.
+                bodyShape.NonVisualShapeProperties = new NonVisualShapeProperties(new NonVisualDrawingProperties() { Id = drawingObjectId, Name = slideContentName },
+                        new NonVisualShapeDrawingProperties(new Drawing.ShapeLocks() { NoGrouping = true }),
+                        new ApplicationNonVisualDrawingProperties(new PlaceholderShape() { Index = shape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties.PlaceholderShape.Index }));
+                bodyShape.ShapeProperties = new ShapeProperties();
+
+                // Specify the text of the body shape.
+                bodyShape.TextBody = new TextBody(new Drawing.BodyProperties(),
+                        new Drawing.ListStyle(),
+                        new Drawing.Paragraph(new Drawing.Run(new Drawing.Text() { Text = slideContentText })));
             }
-
-            // Specify the required shape properties for the body shape.
-            bodyShape.NonVisualShapeProperties = new NonVisualShapeProperties(new NonVisualDrawingProperties() { Id = drawingObjectId, Name = "Content Placeholder" },
-                    new NonVisualShapeDrawingProperties(new Drawing.ShapeLocks() { NoGrouping = true }),
-                    new ApplicationNonVisualDrawingProperties(new PlaceholderShape() { Index = slideTextContentPlaceholderIndex }));
-            bodyShape.ShapeProperties = new ShapeProperties();
-
-            // Specify the text of the body shape.
-            bodyShape.TextBody = new TextBody(new Drawing.BodyProperties(),
-                    new Drawing.ListStyle(),
-                    new Drawing.Paragraph(new Drawing.Run(new Drawing.Text() { Text = "XXX Text XXX" })));
 
             // Modify the slide ID list in the presentation part.
             // The slide ID list should not be null.
             SlideIdList? slideIdList = presentationPart.Presentation.SlideIdList;
 
-            // Find the highest slide ID in the current list.
+            // Find the slide position or insert last if position is not defined.
             uint maxSlideId = 1;
             SlideId? prevSlideId = null;
-
             OpenXmlElementList slideIds = slideIdList?.ChildElements ?? default;
-
             foreach (SlideId slideId in slideIds)
             {
                 if (slideId.Id is not null && slideId.Id > maxSlideId)
@@ -185,12 +199,18 @@ namespace PPTXExportPlugin
                     maxSlideId = slideId.Id;
                 }
 
-                position--;
-                if (position == 0)
+                if (slidePosition is not null)
+                {
+                    slidePosition--;
+                    if (slidePosition == 0)
+                    {
+                        prevSlideId = slideId;
+                    }
+                }
+                else
                 {
                     prevSlideId = slideId;
                 }
-
             }
 
             maxSlideId++;
@@ -213,14 +233,6 @@ namespace PPTXExportPlugin
 
                 lastSlidePart = (SlidePart)presentationPart.GetPartById(firstRelId);
             }
-
-            //// Create the slide part for the new slide.
-            //SlidePart slidePart = presentationPart.AddNewPart<SlidePart>();
-
-            //// Select master slide layout and add to slide.
-            //SlideMasterPart slideMasterPart = presentationPart.SlideMasterParts.First();
-            //SlideLayoutPart slideLayoutPart = slideMasterPart.SlideLayoutParts.SingleOrDefault(sl => sl.SlideLayout.CommonSlideData.Name.Value.Equals("Test", StringComparison.OrdinalIgnoreCase));
-            //slidePart.AddPart(slideLayoutPart);
 
             // Save the new slide part.
             slide.Save(slidePart);
