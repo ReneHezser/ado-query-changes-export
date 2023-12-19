@@ -75,7 +75,7 @@ namespace PPTXExportPlugin
             }
             catch (IOException)
             {
-                Logger.LogCritical("Cannot copy the PowerPoint template 'PPTXExportPlugin_Template.pptx' from the Plugins folder to the application folder. Please check permissions and try again.");
+                Logger.LogCritical($"Cannot copy and rename the PowerPoint template 'PPTXExportPlugin_Template.pptx' from the Plugins folder to the output file '{targetFile}' in the application folder.");
                 return;
             }
 
@@ -85,18 +85,26 @@ namespace PPTXExportPlugin
             ReportItems = FilterItems(workItems)
             };
 
-            Logger.LogInformation($@"PowerPoint target file '{targetFile}' processing started.");
+            Logger.LogInformation($@"Processing of output file '{targetFile}' started.");
 
-            // Open the source document as read/write. 
-            using (PresentationDocument presentationDocument = PresentationDocument.Open($"{targetFile}", true))
+            try
             {
-                // Pass the source document and all information of the slide to be inserted to the next method. (Overview, SingleChange) (HeaderX, ContentX)
-                
-                InsertNewSlideWithText(presentationDocument, "My new slide", "Overview", new string[,] { {"Header1","Überschrift1"}, {"Content1","Text1"}, { "Header2", "Überschrift2" }, { "Content2", "Text2" } }, 1);
+                // Open the source document as read/write. 
+                using (PresentationDocument presentationDocument = PresentationDocument.Open($"{targetFile}", true))
+                {
+                    // Pass the source document and all information of the slide to be inserted to the next method. (Overview, SingleChange) (HeaderX, ContentX)
 
+                    InsertNewSlideWithText(presentationDocument, "My new slide", "Overview", new string[,] { { "Header1", "Überschrift1" }, { "Content1", "Text1" }, { "Header2", "Überschrift2" }, { "Content2", "Text2" } }, 1);
+
+                }
+            }
+            catch (IOException)
+            {
+                Logger.LogCritical($"Cannot access the output file '{targetFile}' in the application folder.");
+                return;
             }
 
-            Logger.LogInformation($@"PowerPoint target file '{targetFile}' processing finished.");
+            Logger.LogInformation($@"Processing of output file '{targetFile}' finished.");
         }
 
         // Insert the specified slide into the presentation at the specified position.
@@ -107,7 +115,8 @@ namespace PPTXExportPlugin
             // Verify that the presentation is not empty.
             if (presentationPart is null)
             {
-                throw new InvalidOperationException("The presentation document is empty.");
+                Logger.LogCritical("The provided object for the presentation document is empty.");
+                return;
             }
 
             // Declare and instantiate a new slide.
