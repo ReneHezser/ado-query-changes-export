@@ -6,5 +6,5 @@ bin/
 obj/
 /.vs
 /PPTXExportPlugin/.vs
-/ChangeQueryExport/ado-query.wiql
+
 /ChangeQueryExport/ChangeQueryExport.sln
