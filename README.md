@@ -14,6 +14,10 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Changelog
 
+### 1.0.10
+
+- Modified Events for Application Insights
+
 ### 1.0.9
 
 - refactoring plugin loading for Docker usage
