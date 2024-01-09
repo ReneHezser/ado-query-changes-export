@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using Drawing = DocumentFormat.OpenXml.Drawing;
+using System.Text.RegularExpressions;
 
 namespace PPTXExportPlugin
 {
@@ -18,7 +19,7 @@ namespace PPTXExportPlugin
         public ILogger Logger { get; set; }
 
         public static string[] IgnoreFieldsStartingWith { get; set; } = new[] {
-            "System.BoardColumn", "Microsoft.VSTS.", "WEF_"
+            "System.BoardColumn", "Microsoft.VSTS.", "WEF_", "Custom."
         };
 
         public int Execute(List<IReportItem> items)
@@ -79,11 +80,7 @@ namespace PPTXExportPlugin
                 return;
             }
 
-            var data = new
-            {
-            title = targetFile,
-            ReportItems = FilterItems(workItems)
-            };
+            var ReportItems = FilterItems(workItems);
 
             Logger.LogInformation($@"Processing of output file '{targetFile}' started.");
 
@@ -92,10 +89,69 @@ namespace PPTXExportPlugin
                 // Open the source document as read/write. 
                 using (PresentationDocument presentationDocument = PresentationDocument.Open($"{targetFile}", true))
                 {
-                    // Pass the source document and all information of the slide to be inserted to the next method. (Overview, SingleChange) (HeaderX, ContentX)
+                    Regex slideContentRemoveHTMLTags = new Regex("<.*?>", RegexOptions.Compiled);
+                    foreach (var ReportItem in ReportItems)
+                    {
+                        string slideTitle = ReportItem.ID + ": " + ReportItem.Title;
+                        bool slideChangeComplete = false;
+                        bool slideChangeEmpty = true;
+                        string slideContent = "";
+                        int itemCount = 0;
+                        foreach (var ChangedField in ReportItem.ChangedFields)
+                        {
+                            itemCount++;
+                            // Check for System.Rev to distinguish different changes of a report item
+                            if (ChangedField.Key == "System.Rev" && slideChangeComplete)
+                            {
+                                if (!slideChangeEmpty)
+                                {
+                                    // Remove or convert HTML tags in output variable.
+                                    slideContent = slideContentRemoveHTMLTags.Replace(slideContent, "");
+                                    slideContent = slideContent.Replace("&nbsp;", Environment.NewLine, StringComparison.InvariantCultureIgnoreCase);
+                                    // Generate detail slide for single ADO item change.
+                                    InsertNewSlideWithText(presentationDocument, slideTitle, "SingleChange", new string[,] { { "Content1", slideContent } });
+                                }
+                                // Reset variables for the next ADO item change.
+                                slideChangeComplete = false;
+                                slideChangeEmpty = true;
+                                slideContent = "";
+                            }
+                            else
+                            {
+                                // ChangedField belongs to the next ADO item change.
+                                if (ChangedField.Key == "System.Rev")
+                                {
+                                    slideChangeComplete = true;
+                                }
+                                // ChangedField belongs to the current ADO item change.
+                                else
+                                {
+                                    // Check if ChangedField for the current ADO item change contains real changes to avoid generating slides for ADO item saves without actual changes.
+                                    if (ChangedField.Key != "System.Rev" && ChangedField.Key != "System.ChangedDate" && ChangedField.Key != "System.ChangedBy")
+                                    {
+                                        slideChangeEmpty = false;
+                                    }
+                                    // Add ChangedField to output variable for the current ADO item change.
+                                    slideContent = slideContent + ChangedField.Key.Replace("System.","", StringComparison.InvariantCultureIgnoreCase) + Environment.NewLine + ChangedField.CurrentValue + Environment.NewLine + Environment.NewLine;
+                                }
+                                
+                            }
 
-                    InsertNewSlideWithText(presentationDocument, "My new slide", "Overview", new string[,] { { "Header1", "Überschrift1" }, { "Content1", "Text1" }, { "Header2", "Überschrift2" }, { "Content2", "Text2" } }, 1);
+                            // Check if last changed field for this report item was processed and if so generate slide
+                            if (ReportItem.ChangedFields.Count == itemCount)
+                            {
+                                if (!slideChangeEmpty)
+                                {
+                                    // Remove or convert HTML tags in output variable.
+                                    slideContent = slideContentRemoveHTMLTags.Replace(slideContent, "");
+                                    slideContent = slideContent.Replace("&nbsp;", Environment.NewLine, StringComparison.InvariantCultureIgnoreCase);
+                                    // Generate detail slide for single ADO item change.
+                                    InsertNewSlideWithText(presentationDocument, slideTitle, "SingleChange", new string[,] { { "Content1", slideContent } });
+                                }
+                            }
 
+                        }
+                    }
                 }
             }
             catch (IOException)
