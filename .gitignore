@@ -1,7 +1,6 @@
 .env
 *.html
 *.csv
-
 bin/
 obj/
 /.vs
