@@ -2,7 +2,11 @@ SELECT
     [System.Id],
     [System.WorkItemType],
     [System.Title],
-    [System.State]
+    [System.State],
+    [Custom.OfferingName],
+    [Custom.AZServiceName],
+    [Custom.Account],
+    [Custom.RelatedReferenceData]
 FROM workitemLinks
 WHERE
     (
