@@ -64,6 +64,7 @@ namespace AdoQueries
                }
 
                // do something with the workitems for each Plugin
+               var reporting = new Dictionary<string, int>();
                foreach (IPlugin command in commands)
                {
                   using (_logger.BeginScope("Worker.PluginExecution"))
@@ -74,11 +75,15 @@ namespace AdoQueries
                         _logger.LogDebug($"Executing '{command.Name} - {command.Description}'");
                         int affectedItems = command.Execute(workItems);
                         _logger.LogInformation($"Executed '{command.Name} - {command.Description}' on {affectedItems} items");
+                        reporting.Add(command.Name, affectedItems);
                      }
                      catch (Exception ex)
                      {
                         _logger.LogError(ex, $"Error executing '{command.Name}': {ex.Message}");
-                        _telemetryClient.TrackEvent($"UBS-ADO Sync Worker - Error", metrics: new Dictionary<string, double> { { "Workitems", workItems.Count } }, properties: new Dictionary<string, string> { { command.Name, ex.Message } });
+                        _telemetryClient.TrackEvent($"UBS-ADO Sync Worker - Error",
+                           metrics: new Dictionary<string, double> { { "Workitems", workItems.Count } },
+                           properties: new Dictionary<string, string> { { command.Name, ex.Message } }
+                        );
                      }
                      finally
                      {
@@ -88,14 +93,15 @@ namespace AdoQueries
                   }
                }
 
-               _telemetryClient.TrackEvent($"UBS-ADO Sync Worker - Completed", 
-                  metrics: new Dictionary<string, double> { 
-                     { "Workitems", workItems.Count },
-                     { "Plugins", commands.Count() } },
-                  properties: new Dictionary<string, string> { 
-                     { "Version", version },
-                     { "QueryDays", queryDays.ToString() } }
-                  );
+               var metrics = new Dictionary<string, double> { { "Workitems", workItems.Count }, { "Plugins", commands.Count() } };
+               // add metrics for each plugin
+               foreach (var item in reporting) metrics.Add(item.Key, item.Value);
+               _telemetryClient.TrackEvent($"UBS-ADO Sync Worker - Completed",
+                  metrics: metrics,
+                  properties: new Dictionary<string, string> {
+                           { "Version", version },
+                           { "QueryDays", queryDays.ToString() } }
+               );
                _telemetryClient.Flush();
             }
             catch (Exception ex)
