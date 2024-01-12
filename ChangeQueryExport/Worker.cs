@@ -10,7 +10,7 @@ namespace AdoQueries
 {
    public class Worker : BackgroundService
    {
-      private static string version = "1.0.10";
+      private static string version = "1.0.11";
 
       private readonly ILogger<Worker> _logger;
       private TelemetryClient _telemetryClient;

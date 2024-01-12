@@ -94,6 +94,7 @@ namespace AdoQueries
                     }
                 }
 
+                // start with the newest version
                 foreach (var workItem in workItems.OrderByDescending(wi => wi.Rev))
                 {
                     var workItemRelation = workItemRelations.First(wir => wir.Target.Id == workItem.Id);
@@ -145,7 +146,9 @@ namespace AdoQueries
                             Title = Extensions.GetFieldValue<string>(workItem.Fields["System.Title"]),
                             LinkToItem = linkToItem,
                             LinkToParent = workItemLink.Source.Url,
-                            ChangedFields = changes
+                            ChangedFields = changes,
+                            // add all fields from the item (latest version) in case a plugin wants them
+                            CurrentItemFields = workItem.Fields
                         };
                         if (!string.IsNullOrEmpty(engineeringWorkItemURL)) reportItem.EngineeringWorkItemURL = engineeringWorkItemURL;
                         reportItems.Add(reportItem);

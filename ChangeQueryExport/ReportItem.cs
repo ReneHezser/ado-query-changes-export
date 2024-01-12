@@ -9,6 +9,7 @@ namespace AdoQueries
       public int ID { get; set; }
       public int VersionID { get; set; }
       public string? Title { get; set; }
+      public IDictionary<string, object> CurrentItemFields { get; set; } = new Dictionary<string, object>();
       public List<IChangedField> ChangedFields { get; set; } = new List<IChangedField>();
       public string? LinkToItem { get; set; }
       public string? LinkToParent { get; set; }
