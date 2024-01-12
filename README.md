@@ -14,6 +14,14 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Changelog
 
+### 1.0.11
+
+- added full list of fields to the ReportItem for Plugins to offer fields that have not been changed
+
+### 1.0.10
+
+- Modified Events for Application Insights
+
 ### 1.0.9
 
 - refactoring plugin loading for Docker usage
