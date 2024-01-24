@@ -14,6 +14,10 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Changelog
 
+### 1.1.0
+
+- added Errors Dictionary to the IPlugin interface. With this, errors on items can be reported back to the executor to log them.
+
 ### 1.0.11
 
 - added full list of fields to the ReportItem for Plugins to offer fields that have not been changed

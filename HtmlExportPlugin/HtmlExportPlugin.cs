@@ -13,6 +13,7 @@ namespace HtmlExportPlugin
       public string Name { get => "HTML Export Plugin"; }
       public string Description { get => "Exports changes to an HTML file."; }
       public ILogger Logger { get; set; }
+      public IDictionary<string, string> Errors { get; private set; } = new Dictionary<string, string>();
 
       public static string[] IgnoreFieldsStartingWith { get; set; } = new[] {
          "System.BoardColumn", "Microsoft.VSTS.", "WEF_"

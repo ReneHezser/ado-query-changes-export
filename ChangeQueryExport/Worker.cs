@@ -10,7 +10,7 @@ namespace AdoQueries
 {
    public class Worker : BackgroundService
    {
-      private static string version = "1.0.11";
+      private static string version = "1.1.0";
 
       private readonly ILogger<Worker> _logger;
       private TelemetryClient _telemetryClient;
@@ -76,6 +76,14 @@ namespace AdoQueries
                         int affectedItems = command.Execute(workItems);
                         _logger.LogInformation($"Executed '{command.Name} - {command.Description}' on {affectedItems} items");
                         reporting.Add(command.Name, affectedItems);
+
+                        if (command.Errors.Any())
+                        {
+                           // if the plugin reported errors, log them
+                           var properties = new Dictionary<string, string> { { "Plugin", command.Name } };
+                           properties.AddRange(command.Errors);
+                           _telemetryClient.TrackEvent($"UBS-ADO Sync Worker - Error", properties: properties);
+                        }
                      }
                      catch (Exception ex)
                      {
