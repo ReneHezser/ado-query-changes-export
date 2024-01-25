@@ -80,8 +80,11 @@ namespace AdoQueries
                         if (command.Errors.Any())
                         {
                            // if the plugin reported errors, log them
-                           var properties = new Dictionary<string, string> { { "Plugin", command.Name } };
-                           properties.AddRange(command.Errors);
+                           var properties = new Dictionary<string, string>
+                           {
+                               { "Plugin", command.Name },
+                               { "Error", string.Join(", ", command.Errors) }
+                           };
                            _telemetryClient.TrackEvent($"UBS-ADO Sync Worker - Error", properties: properties);
                         }
                      }
@@ -90,7 +93,7 @@ namespace AdoQueries
                         _logger.LogError(ex, $"Error executing '{command.Name}': {ex.Message}");
                         _telemetryClient.TrackEvent($"UBS-ADO Sync Worker - Error",
                            metrics: new Dictionary<string, double> { { "Workitems", workItems.Count } },
-                           properties: new Dictionary<string, string> { { command.Name, ex.Message } }
+                           properties: new Dictionary<string, string> { { "Error", command.Name + ": " + ex.Message } }
                         );
                      }
                      finally
