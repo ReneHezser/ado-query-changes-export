@@ -14,6 +14,11 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Changelog
 
+### 1.2.0
+
+- Ignore fields changes to StartsWith comparison. "Microsoft.VSTS" will also ignore "Microsoft.VSTS.Common.StateChangedDate"
+- Fixes change from null to a value
+
 ### 1.1.0
 
 - added Errors Dictionary to the IPlugin interface. With this, errors on items can be reported back to the executor to log them.

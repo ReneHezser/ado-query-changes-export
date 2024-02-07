@@ -7,6 +7,7 @@ namespace PluginBase
       public int ID { get; set; }
       public int VersionID { get; set; }
       public string Title { get; set; }
+      
       /// <summary>
       /// All fields from the latest version of the item
       /// </summary>
@@ -16,7 +17,12 @@ namespace PluginBase
       public string LinkToParent { get; set; }
       public string EngineeringWorkItemURL { get; set; }
 
+      /// <summary>
+      /// Ignore these fields, when comparing versions.
+      /// The fieldnames will be compared with StartsWith. Microsoft.VSTS will also ignore Microsoft.VSTS.Common.StateChangedDate.
+      /// </summary>
       public static string[] IgnoreFields { get; set; }
+
       /// <summary>
       /// Ignore versions, that have been changed by these users.
       /// </summary>

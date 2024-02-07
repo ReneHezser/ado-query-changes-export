@@ -19,7 +19,9 @@ namespace AdoQueries
       "System.CommentCount",
       "System.AuthorizedDate", "System.RevisedDate",
       "System.AuthorizedAs", "System.PersonId",
-      "System.Watermark"
+      "System.Watermark",
+      "Microsoft.VSTS",
+      "Custom.FeatureScoreByOffering"
       };
 
       public static string[] IgnoreChangedBy { get; set; } = Array.Empty<string>();
@@ -47,7 +49,7 @@ namespace AdoQueries
          var changedFields = new List<IChangedField>();
          foreach (var field in currentItem.Fields)
          {
-            if (IgnoreFields.Contains(field.Key)) continue;
+            if (IgnoreFields.Any(field.Key.StartsWith)) continue;
 
             object? previousValue = null;
             // check if the direct previous version has the field
@@ -82,7 +84,7 @@ namespace AdoQueries
             }
 
             // now the current and previous value are known. Only add them to the changed fields list, if the value has changed
-            if (previousValue != null && (string)previousValue != Extensions.GetFieldValue<string>(field.Value))
+            if (previousValue == null || (previousValue != null && (string)previousValue != Extensions.GetFieldValue<string>(field.Value)))
             {
                changedFields.Add(new ChangedField
                {
