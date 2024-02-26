@@ -25,10 +25,10 @@
 
   <!-- copy sample Plugin to Plugin directory of the main program -->
   <ItemGroup>
-    <SamplePluginFiles Include="$(TargetDir)publish\*.*"/>
+    <HtmlExportPluginFiles Include="$(TargetDir)publish\*.*"/>
   </ItemGroup>
-  <Target Name="CopySamplePluginFiles" AfterTargets="AfterBuild">
-    <Copy SourceFiles="@(SamplePluginFiles)" 
+  <Target Name="CopyHtmlExportPluginFiles" AfterTargets="AfterBuild">
+    <Copy SourceFiles="@(HtmlExportPluginFiles)" 
       DestinationFolder="$(BaseOutputPath)\..\..\ChangeQueryExport\Plugins" />
   </Target>
 

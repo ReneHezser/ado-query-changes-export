@@ -4,7 +4,7 @@ Keeping track of Azure DevOps items can be hard, if you need to monitor many ite
 
 **Disclaimer:** *this tool does not shine with great coding, as this was not in scope. Treat it like a demo and improve if you want to use it in a production way!*
 
-# Description
+## Description
 
 In my case Feedback items are associated to Features, which are updated by somebody else.
 
@@ -75,18 +75,18 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 - initial version
 
-# Requirements
+## Requirements
 
 - Azure DevOps Personal Access Token (PAT)
 - Query that returns linked items like in the screenshot above
 - ```.env``` file
 - ```appsettings.json``` file
 
-## TODO
+### TODO
 
 - ...
 
-## PAT
+### PAT
 
 A personal access token has to be generated for the organization that hosts the items to query.
 
@@ -94,7 +94,7 @@ A personal access token has to be generated for the organization that hosts the 
 
 Create a new personal access token with "Work Items: Read" (copy the generated pat, as you won't be able to retrieve it later).
 
-## ADO Query
+### ADO Query
 
 An existing query can be exported as **wiql** query in the editor, after you install this extension to Azure DevOps [Wiql Editor](https://marketplace.visualstudio.com/items?itemName=ottostreifel.wiql-editor).
 
@@ -102,7 +102,7 @@ An existing query can be exported as **wiql** query in the editor, after you ins
 
 *This tool will only look at changes in items that have a parent. In the first screenshot you can see that Features have a parent (Feedbacks).*
 
-```
+```text
 SELECT
     [System.Id],
     [System.WorkItemType],
@@ -128,7 +128,7 @@ MODE (MustContain)
 
 This query needs to be copied to the ```ado-query.wiql``` file. It is important to replace ```@project``` with ```'{0}'```, as the program will replace the project from the env file into the query prior executing.
 
-## .env file
+### .env file
 
 This file provides environment variables. Please create the file and fill the values accordingly.
 
@@ -137,13 +137,15 @@ ORGANIZATION=<your organization>
 PROJECT=<your project>
 QUERY_DAYS=7
 PERSONAL_ACCESS_TOKEN=<the pat created earlier>
+# optionally for PPTx plugin
+PPTX_TARGET_PATH=c:\users\somebody\Desktop\AdoChanges.pptx
 ```
 
 The organization is the first part in the URL after dev.azure.com. Project follows in the URL after the organization.
 
 With QUERY_DAYS you can configure how many days shall be taken into account when determining changes to an item.
 
-## appsettings.json file
+### appsettings.json file
 
 Application-specific configuration is done in the appsettings file. Create it in the same folder as the application.
 
@@ -164,23 +166,23 @@ Application-specific configuration is done in the appsettings file. Create it in
 
 Fill in the connection string to Application Insights in the application.json.
 
-## Run the tool
+### Run the tool
 
 The [releases folder](/releases/) might contain the application. In order to run it you need to (everything in the same folder)
 
 1. add an ```.env``` file
 2. add an ```appsettings.json``` file
-2. adjust the wiql query in ```ado-query.wiql```
-3. execute ```.\AdoQueries.exe```
+3. adjust the wiql query in ```ado-query.wiql```
+4. execute ```.\AdoQueries.exe```
 
 The output html will be stored in the same folder.
 
-# Build it
+## Build it
 
 To build the application open the workspace file in the root directory ```ChangeQueryExport.code-workspace```. Then, in the console of VSCode, build everything.
 
 ```powershell
-cd HtmlExportPlugin
+cd HtmlExportPlugin # or the plugin you want to build
 dotnet build
 ```
 
@@ -193,10 +195,10 @@ dotnet publish --self-contained true
 
 After publishing the application to the ```bin\Debug\net7.0\win-x64\publish``` folder, the Plugin itself needs to be copied from the ```ChangeQueryExport\Plugin``` to the Plugin folder underneath the publish folder.
 
-## Plugins
+### Plugins
 
 Each plugin needs to be built and the output copied to the Plugins folder. An ILogger will be passed on to the Plugin and can be used for logging to Application Insights or the console. It is configured for the application in the ```appsettings.json``` file.
 
-# Links
+## Links
 
 - [AppWithPlugin Sample Code](https://github.com/dotnet/samples/tree/main/core/extensions/AppWithPlugin)

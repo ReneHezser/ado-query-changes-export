@@ -57,10 +57,10 @@ namespace PPTXExportPlugin
         internal void CreatePPTX(List<IReportItem> workItems)
         {
             string source;
-            var templateFile = Path.Combine(new[] { "Plugins", "PPTXExportPlugin_Template.pptx" });
+            var relativeTemplateFile = Path.Combine(new[] { "Plugins", "PPTXExportPlugin_Template.pptx" });
             try
-            {                
-                source = File.ReadAllText(templateFile);
+            {
+                source = File.ReadAllText(relativeTemplateFile);
             }
             catch (FileNotFoundException)
             {
@@ -68,12 +68,16 @@ namespace PPTXExportPlugin
                 return;
             }
 
-            string targetFile = $"{Environment.GetEnvironmentVariable("ORGANIZATION")}-{Environment.GetEnvironmentVariable("PROJECT")}-{DateTime.Now.ToShortDateString().Replace("/", "-")}-Export.pptx";
+            // use the target file from the environment variable if it exists, otherwise use the default which will put the output file into the application folder
+            string targetFile = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PPTX_TARGET_PATH")) ?
+                $"{Environment.GetEnvironmentVariable("ORGANIZATION")}-{Environment.GetEnvironmentVariable("PROJECT")}-{DateTime.Now.ToShortDateString().Replace("/", "-")}-Export.pptx" :
+                Environment.GetEnvironmentVariable("PPTX_TARGET_PATH");
 
             try
             {
-                File.Copy(templateFile, targetFile, true);
-                Logger.LogInformation($@"PowerPoint target file '{targetFile}' created from template '.\{templateFile}'.");
+                string templateFilePath = Path.GetFullPath(relativeTemplateFile, Directory.GetCurrentDirectory());
+                File.Copy(templateFilePath, targetFile, true);
+                Logger.LogInformation($@"PowerPoint target file '{targetFile}' created from template '.\{relativeTemplateFile}'.");
             }
             catch (IOException)
             {
@@ -133,9 +137,9 @@ namespace PPTXExportPlugin
                                         slideChangeEmpty = false;
                                     }
                                     // Add ChangedField to output variable for the current ADO item change.
-                                    slideContent = slideContent + ChangedField.Key.Replace("System.","", StringComparison.InvariantCultureIgnoreCase) + Environment.NewLine + ChangedField.CurrentValue + Environment.NewLine + Environment.NewLine;
+                                    slideContent = slideContent + ChangedField.Key.Replace("System.", "", StringComparison.InvariantCultureIgnoreCase) + Environment.NewLine + ChangedField.CurrentValue + Environment.NewLine + Environment.NewLine;
                                 }
-                                
+
                             }
 
                             // Check if last changed field for this report item was processed and if so generate slide

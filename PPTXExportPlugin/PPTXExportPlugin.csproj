@@ -25,11 +25,11 @@
 
   <!-- copy sample Plugin to Plugin directory of the main program -->
   <ItemGroup>
-    <SamplePluginFiles Include="$(TargetDir)publish\*.*" />
+    <PPTxPluginFiles Include="$(TargetDir)publish\*.*" />
   </ItemGroup>
-  <Target Name="CopySamplePluginFiles" AfterTargets="AfterBuild">
-    <Copy SourceFiles="@(SamplePluginFiles)" DestinationFolder="$(BaseOutputPath)\..\..\ChangeQueryExport\Plugins" />
-  </Target>
+  <Target Name="CopyPPTxPluginFiles" AfterTargets="AfterBuild">
+    <Copy SourceFiles="@(PPTxPluginFiles)" DestinationFolder="$(BaseOutputPath)\..\..\ChangeQueryExport\Plugins" />
+  </Target>  
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="rd bin /S /Q" />
   </Target>
