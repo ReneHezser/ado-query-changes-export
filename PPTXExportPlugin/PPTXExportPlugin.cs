@@ -9,15 +9,15 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using Drawing = DocumentFormat.OpenXml.Drawing;
 using System.Text.RegularExpressions;
-using Microsoft.VisualStudio.Services.Common;
 
 namespace PPTXExportPlugin
 {
     public class PPTXExportPlugin : IPlugin
     {
         public string Name { get => "PPTX Export Plugin"; }
-        public string Description { get => "Exports ADO item changes to a PowerPoint file."; }
+        public string Description { get => "Exports changes to an PPTX file."; }
         public ILogger Logger { get; set; }
+        public IDictionary<string, string> Errors { get; private set; } = new Dictionary<string, string>();
 
         public static string[] IgnoreFieldsStartingWith { get; set; } = new[] {
             "System.BoardColumn", "Microsoft.VSTS.", "WEF_", "Custom."
@@ -75,10 +75,10 @@ namespace PPTXExportPlugin
 
             // Check if PowerPoint template exists and can be accessed.
             string source;
-            var templateFile = Path.Combine(new[] { "Plugins", "PPTXExportPlugin_Template.pptx" });
+            var relativeTemplateFile = Path.Combine(new[] { "Plugins", "PPTXExportPlugin_Template.pptx" });
             try
-            {                
-                source = File.ReadAllText(templateFile);
+            {
+                source = File.ReadAllText(relativeTemplateFile);
             }
             catch (FileNotFoundException)
             {
@@ -86,12 +86,16 @@ namespace PPTXExportPlugin
                 return;
             }
 
-            // Copy PowerPoint template to new output file in the application folder.
-            string targetFile = $"{Environment.GetEnvironmentVariable("ORGANIZATION")}-{Environment.GetEnvironmentVariable("PROJECT")}-{DateTime.Now.ToShortDateString().Replace("/", "-")}-Export.pptx";
+            // Use the target file from the environment variable if it exists, otherwise use the default which will put the output file into the application folder
+            string targetFile = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PPTX_TARGET_PATH")) ?
+                $"{Environment.GetEnvironmentVariable("ORGANIZATION")}-{Environment.GetEnvironmentVariable("PROJECT")}-{DateTime.Now.ToShortDateString().Replace("/", "-")}-Export.pptx" :
+                Environment.GetEnvironmentVariable("PPTX_TARGET_PATH");
+
             try
             {
-                File.Copy(templateFile, targetFile, true);
-                Logger.LogInformation($@"PowerPoint target file '{targetFile}' created from template '.\{templateFile}'.");
+                string templateFilePath = Path.GetFullPath(relativeTemplateFile, Directory.GetCurrentDirectory());
+                File.Copy(templateFilePath, targetFile, true);
+                Logger.LogInformation($@"PowerPoint target file '{targetFile}' created from template '.\{relativeTemplateFile}'.");
             }
             catch (IOException)
             {
