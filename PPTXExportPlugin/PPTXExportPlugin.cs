@@ -54,8 +54,26 @@ namespace PPTXExportPlugin
             return workItems.ToArray();
         }
 
+        private static string ReformatHTML(string stringHTML)
+        {
+            // Look for HTML content which can be removed or converted into text.
+            stringHTML = stringHTML.Replace("&nbsp;", Environment.NewLine, StringComparison.InvariantCultureIgnoreCase);
+            stringHTML = stringHTML.Replace("&lt;", ">", StringComparison.InvariantCultureIgnoreCase);
+            stringHTML = stringHTML.Replace("&gt;", "<", StringComparison.InvariantCultureIgnoreCase);
+            stringHTML = stringHTML.Replace("&nbsp;", " ", StringComparison.InvariantCultureIgnoreCase);
+            stringHTML = Regex.Replace(stringHTML, "<.*?>", string.Empty, RegexOptions.Multiline);
+            stringHTML = Regex.Replace(stringHTML, @"^\s+$", string.Empty, RegexOptions.Multiline);
+            stringHTML = Regex.Replace(stringHTML, @"^\n|\r$", string.Empty, RegexOptions.Multiline);
+            // stringHTML = Regex.Replace(stringHTML, @"^\s*", string.Empty, RegexOptions.Multiline);
+            return stringHTML;
+        }
+
         internal void CreatePPTX(List<IReportItem> workItems)
         {
+            // Filter unneeded ReportItem.ChangedFields.
+            var ReportItems = FilterItems(workItems);
+
+            // Check if PowerPoint template exists and can be accessed.
             string source;
             var relativeTemplateFile = Path.Combine(new[] { "Plugins", "PPTXExportPlugin_Template.pptx" });
             try
@@ -68,7 +86,7 @@ namespace PPTXExportPlugin
                 return;
             }
 
-            // use the target file from the environment variable if it exists, otherwise use the default which will put the output file into the application folder
+            // Use the target file from the environment variable if it exists, otherwise use the default which will put the output file into the application folder
             string targetFile = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PPTX_TARGET_PATH")) ?
                 $"{Environment.GetEnvironmentVariable("ORGANIZATION")}-{Environment.GetEnvironmentVariable("PROJECT")}-{DateTime.Now.ToShortDateString().Replace("/", "-")}-Export.pptx" :
                 Environment.GetEnvironmentVariable("PPTX_TARGET_PATH");
@@ -85,61 +103,70 @@ namespace PPTXExportPlugin
                 return;
             }
 
-            var ReportItems = FilterItems(workItems);
-
             Logger.LogInformation($@"Processing of output file '{targetFile}' started.");
-
             try
             {
                 // Open the source document as read/write. 
                 using (PresentationDocument presentationDocument = PresentationDocument.Open($"{targetFile}", true))
                 {
-                    Regex slideContentRemoveHTMLTags = new Regex("<.*?>", RegexOptions.Compiled);
+                    int countItems = 0;
+                    int currentItem = 0;
+                    int countChanges = 0;
+                    string[] itemSystemStates = { };
                     foreach (var ReportItem in ReportItems)
                     {
                         string slideTitle = ReportItem.ID + ": " + ReportItem.Title;
-                        bool slideChangeComplete = false;
+                        Logger.LogInformation($@"Processing of item '{slideTitle}' started.");
+                        bool firstSystemRev = true;
                         bool slideChangeEmpty = true;
-                        string slideContent = "";
+                        bool slideAdded = false;
+                        string slideContentValue = "";
                         int itemCount = 0;
                         foreach (var ChangedField in ReportItem.ChangedFields)
                         {
                             itemCount++;
-                            // Check for System.Rev to distinguish different changes of a report item
-                            if (ChangedField.Key == "System.Rev" && slideChangeComplete)
+                            if (ChangedField.Key == "System.Rev" && !firstSystemRev)
                             {
                                 if (!slideChangeEmpty)
                                 {
-                                    // Remove or convert HTML tags in output variable.
-                                    slideContent = slideContentRemoveHTMLTags.Replace(slideContent, "");
-                                    slideContent = slideContent.Replace("&nbsp;", Environment.NewLine, StringComparison.InvariantCultureIgnoreCase);
+                                    // Update count of changed items and amount of changes
+                                    if (currentItem != ReportItem.ID)
+                                    {
+                                        currentItem = ReportItem.ID;
+                                        countItems++;
+                                    }
+                                    countChanges++;
                                     // Generate detail slide for single ADO item change.
-                                    InsertNewSlideWithText(presentationDocument, slideTitle, "SingleChange", new string[,] { { "Content1", slideContent } });
+                                    Logger.LogInformation($@"Adding slide '{slideTitle}'.");
+                                    InsertNewSlideWithText(presentationDocument, slideTitle, "SingleChange", new string[,] { { "Content1", slideContentValue } });
+                                    slideAdded = true;
+                                    slideChangeEmpty = true;
                                 }
-                                // Reset variables for the next ADO item change.
-                                slideChangeComplete = false;
-                                slideChangeEmpty = true;
-                                slideContent = "";
+                                else
+                                {
+                                    Logger.LogInformation($@"Adding slide skipped. No useful data found in change.");
+                                }
+                                slideContentValue = "";
                             }
                             else
                             {
-                                // ChangedField belongs to the next ADO item change.
-                                if (ChangedField.Key == "System.Rev")
+                                // Check if ChangedField for the current ADO item change contains real changes to avoid generating slides for ADO item saves without actual changes.
+                                if (ChangedField.Key != "System.Rev" && ChangedField.Key != "System.ChangedDate" && ChangedField.Key != "System.ChangedBy")
                                 {
-                                    slideChangeComplete = true;
+                                    slideChangeEmpty = false;
                                 }
-                                // ChangedField belongs to the current ADO item change.
-                                else
+                                //
+                                if (slideContentValue == "")
                                 {
-                                    // Check if ChangedField for the current ADO item change contains real changes to avoid generating slides for ADO item saves without actual changes.
-                                    if (ChangedField.Key != "System.Rev" && ChangedField.Key != "System.ChangedDate" && ChangedField.Key != "System.ChangedBy")
-                                    {
-                                        slideChangeEmpty = false;
-                                    }
-                                    // Add ChangedField to output variable for the current ADO item change.
-                                    slideContent = slideContent + ChangedField.Key.Replace("System.", "", StringComparison.InvariantCultureIgnoreCase) + Environment.NewLine + ChangedField.CurrentValue + Environment.NewLine + Environment.NewLine;
+                                    slideContentValue = "URL" + Environment.NewLine + ReportItem.EngineeringWorkItemURL + Environment.NewLine + Environment.NewLine;
                                 }
+                                // Add ChangedField key and value to output variable for the current ADO item change.
+                                slideContentValue = slideContentValue + ChangedField.Key.Replace("System.", "", StringComparison.InvariantCultureIgnoreCase) + Environment.NewLine + ReformatHTML(ChangedField.CurrentValue.ToString()) + Environment.NewLine + Environment.NewLine;
+                            }
 
+                            if (ChangedField.Key == "System.Rev" && firstSystemRev)
+                            {
+                                firstSystemRev = false;
                             }
 
                             // Check if last changed field for this report item was processed and if so generate slide
@@ -147,16 +174,79 @@ namespace PPTXExportPlugin
                             {
                                 if (!slideChangeEmpty)
                                 {
-                                    // Remove or convert HTML tags in output variable.
-                                    slideContent = slideContentRemoveHTMLTags.Replace(slideContent, "");
-                                    slideContent = slideContent.Replace("&nbsp;", Environment.NewLine, StringComparison.InvariantCultureIgnoreCase);
+                                    // Update count of changed items and amount of changes
+                                    if (currentItem != ReportItem.ID)
+                                    {
+                                        currentItem = ReportItem.ID;
+                                        countItems++;
+                                    }
+                                    countChanges++;
                                     // Generate detail slide for single ADO item change.
-                                    InsertNewSlideWithText(presentationDocument, slideTitle, "SingleChange", new string[,] { { "Content1", slideContent } });
+                                    Logger.LogInformation($@"Adding slide '{slideTitle}'.");
+                                    InsertNewSlideWithText(presentationDocument, slideTitle, "SingleChange", new string[,] { { "Content1", slideContentValue } });
+                                    slideAdded = true;
+                                }
+                                else
+                                {
+                                    Logger.LogInformation($@"Adding slide skipped. No useful data found in change.");
+                                }
+
+                                // If a slide was added for this ADO item we need to store the basic information for the overview slide.
+                                if (slideAdded)
+                                {
+                                    Array.Resize(ref itemSystemStates, itemSystemStates.Length + 1);
+                                    itemSystemStates[itemSystemStates.Length - 1] = ReportItem.CurrentItemFields.First(CurrentItemField => CurrentItemField.Key == "System.State").Value.ToString();
                                 }
                             }
+                        }
+                        Logger.LogInformation($@"Processing of item '{slideTitle}' finished.");
+                    }
 
+                    // Create a dictionary for array itemSystemStates to store distinct elements and count the frequency.
+                    var distinctSystemStates = new Dictionary<string, int>();
+
+                    // Loop through the array and update the dictionary.
+                    foreach (var itemSystemState in itemSystemStates)
+                    {
+                        // If the element is already in the dictionary, increment its count.
+                        if (distinctSystemStates.ContainsKey(itemSystemState))
+                        {
+                            distinctSystemStates[itemSystemState]++;
+                        }
+                        // Otherwise, add the element with a count of 1.
+                        else
+                        {
+                            distinctSystemStates[itemSystemState] = 1;
                         }
                     }
+
+                    Logger.LogInformation($@"Adding slide 'Overview'.");
+
+                    string[,] slideContent = new string[(2 + (distinctSystemStates.Count * 2)), 2];
+
+                    slideContent[0, 0] = "Items_Content";
+                    slideContent[0, 1] = countItems.ToString();
+                    slideContent[1, 0] = "Changes_Content";
+                    slideContent[1, 1] = countChanges.ToString();
+
+                    int slideContentPosition = 2;
+                    int slidePlaceholderPosition = 1;
+                    foreach (var distinctSystemState in distinctSystemStates)
+                    {
+
+                        slideContent[slideContentPosition, 0] = "State_Type_" + slidePlaceholderPosition.ToString();
+                        slideContent[slideContentPosition, 1] = distinctSystemState.Key;
+
+                        slideContent[(slideContentPosition + 1), 0] = "State_Count_" + slidePlaceholderPosition.ToString();
+                        slideContent[(slideContentPosition + 1), 1] = distinctSystemState.Value.ToString();
+
+                        slideContentPosition += 2;
+                        slidePlaceholderPosition++;
+                    }
+
+                    InsertNewSlideWithText(presentationDocument, "Overview", "Overview", slideContent, 1);
+
+                    //InsertNewSlideWithText(presentationDocument, "Overview", "Overview", new string[,] { { "Items_Content", countItems.ToString() }, { "Changes_Content", countChanges.ToString() } }, 1);
                 }
             }
             catch (IOException)
@@ -164,7 +254,6 @@ namespace PPTXExportPlugin
                 Logger.LogCritical($"Cannot access the output file '{targetFile}' in the application folder.");
                 return;
             }
-
             Logger.LogInformation($@"Processing of output file '{targetFile}' finished.");
         }
 
