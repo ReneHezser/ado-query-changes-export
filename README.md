@@ -177,6 +177,10 @@ The [releases folder](/releases/) might contain the application. In order to run
 
 The output html will be stored in the same folder.
 
+## Dependency updates
+
+[Dependabot](.github/dependabot.yml) checks weekly for dependency updates. NuGet version updates across all five projects are grouped into one pull request, and GitHub Actions version updates are grouped separately. Both groups include major, minor, and patch updates.
+
 ## Build it
 
 To build the application open the workspace file in the root directory ```ChangeQueryExport.code-workspace```. Then, in the console of VSCode, build everything.
