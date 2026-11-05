@@ -77,6 +77,7 @@ I wanted to see changes on the associated items (in this case the Features) with
 
 ## Requirements
 
+- .NET 10 SDK for building, or the .NET 10 runtime for framework-dependent deployments
 - Azure DevOps Personal Access Token (PAT)
 - Query that returns linked items like in the screenshot above
 - ```.env``` file
@@ -194,10 +195,10 @@ The plugin is built and copied to the Plugins folder.
 
 ```powershell
 cd ..\ChangeQueryExport\
-dotnet publish --self-contained true
+dotnet publish --configuration Release --self-contained true --runtime win-x64
 ```
 
-After publishing the application to the ```bin\Debug\net7.0\win-x64\publish``` folder, the Plugin itself needs to be copied from the ```ChangeQueryExport\Plugin``` to the Plugin folder underneath the publish folder.
+After publishing the application to the ```bin\Release\net10.0\win-x64\publish``` folder, the Plugin itself needs to be copied from the ```ChangeQueryExport\Plugin``` to the Plugin folder underneath the publish folder.
 
 ### Plugins
 
